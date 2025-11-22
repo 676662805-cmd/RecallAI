@@ -5,6 +5,7 @@ function App() {
   // 1. 定义状态
   const [activeCard, setActiveCard] = useState(null); // 当前显示的卡片
   const [showCard, setShowCard] = useState(false);    // 控制动画显示/隐藏
+  const [isRunning, setIsRunning] = useState(false); // 后端是否在监听
   const [status, setStatus] = useState("等待连接后端..."); // 调试用的状态文字
 
   // 2. 核心逻辑：每隔 1 秒去问一次后端
@@ -21,24 +22,39 @@ function App() {
         }
 
         const data = await response.json();
-        setStatus("正在监听 AI 大脑... 🟢");
 
-        // 3. 判断逻辑：如果后端返回了新的卡片数据
-        if (data && data.card_id) {
-          // 如果当前没有显示卡片，或者 ID 不一样，就更新
-          if (activeCard?.id !== data.card_id) {
-            console.log("发现新卡片！", data);
-            setShowCard(false); // 先收起旧的
-            
-            // 延迟一点点再弹出新的，动画更流畅
+        // 更新是否在运行的状态
+        if (typeof data.is_running !== 'undefined') {
+          setIsRunning(data.is_running);
+          setStatus(data.is_running ? "正在监听 AI 大脑... 🟢" : "后端未运行，点击开始按钮启动");
+        } else {
+          setStatus("正在监听 AI 大脑... 🟢");
+        }
+
+        // 3. 判断逻辑：后端可能返回两种结构：{ card } 或 老的 { card_id, card_data }
+        const card = data.card || (data.card_id ? { id: data.card_id, ...data.card_data } : null);
+        if (card) {
+          if (activeCard?.id !== card.id) {
+            console.log("发现新卡片！", card);
+            setShowCard(false);
             setTimeout(() => {
-              setActiveCard(data.card_data); // 更新数据
-              setShowCard(true);             // 弹出
+              // Transform backend card shape to the UI shape expected by InterviewCard
+              const uiCard = {
+                id: card.id,
+                title: card.topic || card.title || "",
+                // InterviewCard expects content as an array of lines
+                content: Array.isArray(card.content)
+                  ? card.content
+                  : (typeof card.content === 'string' ? card.content.split('\n') : []),
+                tags: Array.isArray(card.tags) ? card.tags : (card.tags ? [card.tags] : [])
+              };
+
+              setActiveCard(uiCard);
+              setShowCard(true);
             }, 200);
           }
         } else {
-          // 如果后端返回空（没匹配到），我们可以选择保持原样，或者收起卡片
-          // 这里我们选择：不收起，让用户多看一会儿，除非有新卡片顶替
+          // 没有匹配到新卡片：不自动收起，保持现状
         }
 
       } catch (error) {
@@ -54,6 +70,38 @@ function App() {
   // 手动关闭卡片
   const closeCard = () => setShowCard(false);
 
+  // 启动后端监听
+  const startInterview = async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/start', { method: 'POST' });
+      if (res.ok) {
+        setStatus('已发送启动指令，后端正在启动...');
+        setIsRunning(true);
+      } else {
+        setStatus('启动请求失败');
+      }
+    } catch (err) {
+      console.error('start error', err);
+      setStatus('启动出错，检查后端或网络');
+    }
+  };
+
+  // 停止后端监听
+  const stopInterview = async () => {
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/stop', { method: 'POST' });
+      if (res.ok) {
+        setStatus('已停止后端监听');
+        setIsRunning(false);
+      } else {
+        setStatus('停止请求失败');
+      }
+    } catch (err) {
+      console.error('stop error', err);
+      setStatus('停止出错，检查后端或网络');
+    }
+  };
+
   return (
     <div style={{ 
       height: '100vh', 
@@ -65,7 +113,7 @@ function App() {
       fontFamily: '-apple-system, sans-serif'
     }}>
       
-      <h1>🧠 RecallAI 实时监控中</h1>
+      <h1>RecallAI 启动中</h1>
       
       {/* 状态指示灯 */}
       <div style={{ 
@@ -87,6 +135,39 @@ function App() {
           background: status.includes('🟢') ? '#34c759' : '#ff3b30'
         }} />
         {status}
+      </div>
+
+      {/* 控制按钮：开始 / 停止 */}
+      <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+        <button
+          onClick={startInterview}
+          disabled={isRunning}
+          style={{
+            padding: '8px 14px',
+            borderRadius: '12px',
+            border: 'none',
+            background: isRunning ? '#d1ffd6' : '#34c759',
+            color: isRunning ? '#6b6b6b' : 'white',
+            cursor: isRunning ? 'not-allowed' : 'pointer'
+          }}
+        >
+          开始
+        </button>
+
+        <button
+          onClick={stopInterview}
+          disabled={!isRunning}
+          style={{
+            padding: '8px 14px',
+            borderRadius: '12px',
+            border: 'none',
+            background: !isRunning ? '#f5f5f5' : '#ff3b30',
+            color: !isRunning ? '#6b6b6b' : 'white',
+            cursor: !isRunning ? 'not-allowed' : 'pointer'
+          }}
+        >
+          停止
+        </button>
       </div>
 
       <p style={{ marginTop: '20px', color: '#86868b', fontSize: '13px' }}>
