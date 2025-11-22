@@ -1,11 +1,13 @@
+import threading
+import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
-# 注意：不再需要 random 库了，删掉它
-# import random 
+from services.audio import AudioService
+from services.matcher import MatchService
 
 app = FastAPI()
 
+# 1. 允许跨域 (让前端能连上)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,21 +16,74 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# 2. 初始化服务
+audio_service = AudioService()
+match_service = MatchService()
+
+# 3. 全局变量 (用于在后台线程和API之间传递数据)
+class GlobalState:
+    is_running = False
+    latest_text = ""
+    latest_card = None
+
+state = GlobalState()
+
+# 4. 后台线程函数 (这就是之前的 run_interview.py 的逻辑)
+def background_listener():
+    print("🧵 Background listener thread started")
+    while state.is_running:
+        # 监听 (这一步是阻塞的，会等待说话)
+        text = audio_service.listen_and_transcribe()
+        
+        if text:
+            print(f"🎤 Recognized: {text}")
+            state.latest_text = text
+            
+            # 匹配
+            card = match_service.find_best_match(text)
+            if card:
+                print(f"✅ Matched: {card['topic']}")
+                state.latest_card = card
+            else:
+                print("❌ No match")
+                state.latest_card = None # 清空上一次的卡片，或者保留看你需求
+        
+        time.sleep(0.1)
+    print("🛑 Background listener stopped")
+
+# --- API 接口区域 ---
+
 @app.get("/")
 def read_root():
-    return {"msg": "Backend is running!"}
+    return {"status": "backend_ready"}
 
-@app.get("/test")
-def test_connection():
-    return {"msg": "I am alive"}
+@app.post("/api/start")
+def start_interview():
+    """前端点击'开始'按钮时调用"""
+    if state.is_running:
+        return {"msg": "Already running"}
+    
+    state.is_running = True
+    # 启动一个后台线程去跑监听循环，这样不会卡死主服务器
+    thread = threading.Thread(target=background_listener)
+    thread.daemon = True # 守护线程，主程序挂了它也挂
+    thread.start()
+    
+    return {"msg": "Interview started"}
 
-# --- 核心接口：AI 轮询 ---
+@app.post("/api/stop")
+def stop_interview():
+    """前端点击'停止'按钮时调用"""
+    state.is_running = False
+    return {"msg": "Interview stopped"}
+
 @app.get("/api/poll")
-def poll_ai():
-    """
-    Day 3: 这里是预留给 B 同学写 AI 逻辑的地方。
-    目前返回空对象 {}，表示没有匹配到卡片。
-    """
-    # TODO: B 同学将在这里接入 GPT-4o-mini
-    # 暂时返回空，让前端保持安静
-    return {}
+def get_latest_result():
+    """前端每隔 1秒 轮询一次这个接口，获取最新显示内容"""
+    # 返回数据后，可以把 latest_card 清空，防止前端重复弹窗
+    # 或者由前端控制去重
+    return {
+        "is_running": state.is_running,
+        "text": state.latest_text,
+        "card": state.latest_card
+    }
