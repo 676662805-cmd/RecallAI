@@ -28,7 +28,7 @@ class MatchService:
     def find_best_match(self, user_query: str):
         """
         Send query + card summaries to GPT-4o-mini to find the best ID.
-        核心逻辑：把问题和卡片发给 AI，让它选一个 ID。
+        核心逻辑：把问题和卡片发给 AI 让它选一个 ID。
         """
         
         # 1. Prepare a simplified list for the AI (save tokens)
@@ -42,15 +42,23 @@ class MatchService:
         # 2. Construct the Prompt
         # 这是最关键的提示词
         system_prompt = f"""
-        You are a helpful assistant for an interviewee.
-        Here is a list of Knowledge Cards:
+        You are an intelligent assistant for an interviewee.
+        Here is the knowledge base (cards):
         {cards_text}
 
-        Your Task:
-        1. Analyze the User's Input.
-        2. Select the ONE card that best matches the input intent.
-        3. Return a JSON object with a single key "best_match_id".
-        4. If NO card matches, return "best_match_id": null.
+        Your Task is to listen to the audio transcript and decide if a card should be shown.
+
+        CRITICAL RULE (Intent Detection):
+        - The transcript contains audio from the interview.
+        - If the text sounds like the **Interviewer asking a question** (e.g., "Tell me about yourself", "How did you handle Redis?", "What is React?"), please find the best matching card ID.
+        - If the text sounds like the **Candidate answering** (e.g., "So, I used Redis to...", "I am a student at...", "The hardest part was..."), or if it is just a short noise, **YOU MUST RETURN null**.
+        
+        Do NOT match the candidate's own answer back to the card. Only match QUESTIONS.
+
+        Output JSON format:
+        {{
+            "best_match_id": "card_id_or_null"
+        }}
         """
 
         # 3. Call OpenAI
