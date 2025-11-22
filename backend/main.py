@@ -1,23 +1,45 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from services.matcher import MatchService # Import our new service
 
 app = FastAPI()
 
-# 允许跨域请求 (CORS)
-# 这一步非常重要！否则你室友的前端 React 访问你会报错 "CORS Error"
+# CORS Setup (Allow frontend access)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 允许所有来源，开发阶段图省事
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Initialize Service
+# 初始化服务实例
+matcher = MatchService()
+
+# Define Request Model
+# 定义前端发过来的数据格式
+class QueryRequest(BaseModel):
+    text: str
+
 @app.get("/")
 def read_root():
-    return {"msg": "Backend is running!"}
+    return {"status": "AI Interviewer Backend is Running"}
 
-@app.get("/test")
-def test_connection():
-    # 这就是你要给前端返回的信号
-    return {"msg": "I am alive"}
+@app.post("/api/match")
+def match_card(request: QueryRequest):
+    """
+    Receives text from frontend, returns the best matched card.
+    接收前端文本 -> 调用 AI -> 返回卡片
+    """
+    print(f"📥 Received query: {request.text}")
+    
+    matched_card = matcher.find_best_match(request.text)
+    
+    if matched_card:
+        print(f"✅ Matched: {matched_card['topic']}")
+        return {"success": True, "card": matched_card}
+    else:
+        print("❌ No match found")
+        return {"success": False, "card": None}

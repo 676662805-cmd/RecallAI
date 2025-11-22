@@ -1,0 +1,22 @@
+[
+  {
+    "id": "card_001",
+    "topic": "Self Introduction",
+    "content": "I am a CS student at a US university. I specialize in Full Stack development using React and Python. I have built an AI interview assistant."
+  },
+  {
+    "id": "card_002",
+    "topic": "Project Challenge - Redis",
+    "content": "The hardest part was handling high concurrency. I used Redis Lua scripts to ensure atomicity during inventory deduction to prevent overselling."
+  },
+  {
+    "id": "card_003",
+    "topic": "Why OpenAI API?",
+    "content": "I chose OpenAI gpt-4o-mini because it offers low latency (sub-second) and high accuracy for JSON output, which is critical for real-time apps."
+  },
+  {
+    "id": "card_004",
+    "topic": "React Hooks",
+    "content": "I use useEffect for side effects and useState for state management. Custom hooks help reuse logic across components."
+  }
+]
