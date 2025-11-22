@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from services.matcher import MatchService # Import our new service
+
+# 注意：不再需要 random 库了，删掉它
+# import random 
 
 app = FastAPI()
 
-# CORS Setup (Allow frontend access)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -14,32 +14,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize Service
-# 初始化服务实例
-matcher = MatchService()
-
-# Define Request Model
-# 定义前端发过来的数据格式
-class QueryRequest(BaseModel):
-    text: str
-
 @app.get("/")
 def read_root():
-    return {"status": "AI Interviewer Backend is Running"}
+    return {"msg": "Backend is running!"}
 
-@app.post("/api/match")
-def match_card(request: QueryRequest):
+@app.get("/test")
+def test_connection():
+    return {"msg": "I am alive"}
+
+# --- 核心接口：AI 轮询 ---
+@app.get("/api/poll")
+def poll_ai():
     """
-    Receives text from frontend, returns the best matched card.
-    接收前端文本 -> 调用 AI -> 返回卡片
+    Day 3: 这里是预留给 B 同学写 AI 逻辑的地方。
+    目前返回空对象 {}，表示没有匹配到卡片。
     """
-    print(f"📥 Received query: {request.text}")
-    
-    matched_card = matcher.find_best_match(request.text)
-    
-    if matched_card:
-        print(f"✅ Matched: {matched_card['topic']}")
-        return {"success": True, "card": matched_card}
-    else:
-        print("❌ No match found")
-        return {"success": False, "card": None}
+    # TODO: B 同学将在这里接入 GPT-4o-mini
+    # 暂时返回空，让前端保持安静
+    return {}
