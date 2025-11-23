@@ -61,10 +61,10 @@ function App() {
               const uiCard = {
                 id: card.id,
                 title: card.topic || card.title || "",
-                // InterviewCard expects content as an array of lines
-                content: Array.isArray(card.components)
-                  ? card.components
-                  : (typeof card.components === 'string' ? card.components.split('\n') : []),
+                  // InterviewCard expects content as an array of lines
+                  content: Array.isArray(card.content)
+                    ? card.content
+                    : (typeof card.content === 'string' ? card.content.split('\n') : []),
                 tags: Array.isArray(card.tags) ? card.tags : (card.tags ? [card.tags] : [])
               };
 
