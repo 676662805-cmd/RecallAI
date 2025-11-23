@@ -1,71 +1,55 @@
 import speech_recognition as sr
 import os
+import io
 from openai import OpenAI
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 class AudioService:
     def __init__(self):
-        # Initialize the recognizer
         self.recognizer = sr.Recognizer()
-        # Adjust sensitivity (lower = more sensitive)
+        
+        # --- 回滚关键点 ---
+        # 调回 0.8 或 1.0。这是最稳的数值。
+        # 意味着：用户说完话后，必须停顿 0.8秒，系统才认为“这句说完了”。
+        # 虽然慢一点，但绝对不会切断你的话。
+        self.recognizer.pause_threshold = 0.8
+        
         self.recognizer.energy_threshold = 300 
-        self.recognizer.pause_threshold = 0.8 # Wait 0.8s of silence to consider "done"
-
+        self.recognizer.dynamic_energy_threshold = True # 开启动态调整
+        
     def listen_and_transcribe(self):
-        """
-        Listens to the microphone and transcribes audio using OpenAI Whisper.
-        Returns: String (The transcribed text) or None
-        """
-        print("🎤 Listening... (Speak now)")
+        print("🎤 Listening... (Speak normally)")
         
         try:
-            # 1. Capture Audio from Microphone
             with sr.Microphone() as source:
-                # Auto-adjust for ambient noise (takes 1 second)
-                # 自动适应环境噪音
+                # 稍微给一点时间适应底噪，防误触
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 
-                # Listen until silence is detected
-                # 开始录音，直到检测到静音
-                audio_data = self.recognizer.listen(source, timeout=10, phrase_time_limit=15)
+                # 这里的 timeout 是指“如果几秒没人说话就退出”，phrase_time_limit 是“单句最长录多久”
+                audio_data = self.recognizer.listen(source, timeout=5, phrase_time_limit=20)
                 print("⏳ Transcribing...")
 
-            # 2. Save temporary file (Whisper needs a file)
-            # 保存临时 wav 文件
-            temp_filename = "temp_audio.wav"
-            with open(temp_filename, "wb") as f:
-                f.write(audio_data.get_wav_data())
+            # 内存直传 (保留这个优化，因为它不影响准确率，只提速)
+            wav_bytes = audio_data.get_wav_data()
+            audio_file = io.BytesIO(wav_bytes)
+            audio_file.name = "audio.wav" 
 
-            # 3. Send to OpenAI Whisper API
-            # 调用 OpenAI Whisper 模型进行语音转文字
-            with open(temp_filename, "rb") as audio_file:
-                transcript = client.audio.transcriptions.create(
-                    model="whisper-1", 
-                    file=audio_file
-                )
+            # 强制英文 (保留这个优化，解决韩语问题)
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1", 
+                file=audio_file,
+                language="en" 
+            )
             
-            # 4. Clean up and return
             text = transcript.text
             print(f"🗣️ You said: {text}")
-            
-            # Delete temp file
-            if os.path.exists(temp_filename):
-                os.remove(temp_filename)
-                
             return text
 
         except sr.WaitTimeoutError:
-            print("Start listening timed out (No speech detected).")
             return None
         except Exception as e:
             print(f"❌ Audio Error: {e}")
             return None
-
-# Simple test block
-if __name__ == "__main__":
-    service = AudioService()
-    service.listen_and_transcribe()

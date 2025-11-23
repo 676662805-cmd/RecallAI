@@ -7,7 +7,7 @@ from services.matcher import MatchService
 
 app = FastAPI()
 
-# 1. 允许跨域 (让前端能连上)
+# 1. 允许跨域
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -20,38 +20,71 @@ app.add_middleware(
 audio_service = AudioService()
 match_service = MatchService()
 
-# 3. 全局变量 (用于在后台线程和API之间传递数据)
+# 3. 全局变量 (带缓存功能)
 class GlobalState:
     is_running = False
     latest_text = ""
     latest_card = None
+    
+    # --- 新增缓存机制 ---
+    sentence_buffer = ""       # 存放可能是断开的半截话
+    last_update_time = 0       # 上次更新缓存的时间
 
 state = GlobalState()
 
-# 4. 后台线程函数 (这就是之前的 run_interview.py 的逻辑)
+# 4. 后台线程函数 (语义接龙逻辑)
 def background_listener():
     print("🧵 Background listener thread started")
+    
+    # 缓存有效期 (秒)
+    # 如果 5 秒都没补全句子，说明之前的半截话没用了，扔掉
+    BUFFER_TIMEOUT = 5.0 
+    
     while state.is_running:
-        # 监听 (这一步是阻塞的，会等待说话)
+        # 监听
         text = audio_service.listen_and_transcribe()
         
         if text:
-            print(f"🎤 Recognized: {text}")
-            state.latest_text = text
+            current_time = time.time()
             
-            # 匹配
-            card = match_service.find_best_match(text)
+            # 1. 检查超时：如果距离上次说话太久，清空旧缓存，重新开始
+            if current_time - state.last_update_time > BUFFER_TIMEOUT:
+                if state.sentence_buffer:
+                    print("🧹 Buffer timeout (Cleared old context)")
+                    state.sentence_buffer = ""
+            
+            state.last_update_time = current_time
+
+            # 2. 尝试匹配：当前这一句 (试试运气，万一这句就是完整的呢？)
+            # 或者：如果缓存里有东西，先拼起来试试
+            
+            current_full_text = (state.sentence_buffer + " " + text).strip()
+            print(f"🧩 Analyzing: [{current_full_text}]")
+            
+            state.latest_text = current_full_text # 更新前端显示
+            
+            # 3. 调用 AI 匹配
+            card = match_service.find_best_match(current_full_text)
+            
             if card:
-                print(f"✅ Matched: {card['topic']}")
+                # A. 匹配成功！
+                print(f"✅ MATCH FOUND: {card['topic']}")
                 state.latest_card = card
+                
+                # 关键：问题解决了，缓存清空，准备迎接下一个新问题
+                state.sentence_buffer = "" 
             else:
-                print("❌ No match")
-                state.latest_card = None # 清空上一次的卡片，或者保留看你需求
+                # B. 匹配失败 (可能是没说完，也可能是真的没匹配到)
+                print("❌ No match (Appending to buffer...)")
+                
+                # 关键：把这句话存起来，等着和下一句拼
+                state.sentence_buffer = current_full_text
+                # 注意：这里不更新 latest_card 为 None，保持上一张卡片（或者你可以根据需求清空）
         
         time.sleep(0.1)
     print("🛑 Background listener stopped")
 
-# --- API 接口区域 ---
+# --- API 接口区域 (保持不变) ---
 
 @app.get("/")
 def read_root():
@@ -59,29 +92,21 @@ def read_root():
 
 @app.post("/api/start")
 def start_interview():
-    """前端点击'开始'按钮时调用"""
     if state.is_running:
         return {"msg": "Already running"}
-    
     state.is_running = True
-    # 启动一个后台线程去跑监听循环，这样不会卡死主服务器
     thread = threading.Thread(target=background_listener)
-    thread.daemon = True # 守护线程，主程序挂了它也挂
+    thread.daemon = True
     thread.start()
-    
     return {"msg": "Interview started"}
 
 @app.post("/api/stop")
 def stop_interview():
-    """前端点击'停止'按钮时调用"""
     state.is_running = False
     return {"msg": "Interview stopped"}
 
 @app.get("/api/poll")
 def get_latest_result():
-    """前端每隔 1秒 轮询一次这个接口，获取最新显示内容"""
-    # 返回数据后，可以把 latest_card 清空，防止前端重复弹窗
-    # 或者由前端控制去重
     return {
         "is_running": state.is_running,
         "text": state.latest_text,

@@ -46,14 +46,26 @@ class MatchService:
         Here is the knowledge base (cards):
         {cards_text}
 
-        Your Task is to listen to the audio transcript and decide if a card should be shown.
+        Your Task:
+        Predict the most likely card based on the available text, EVEN IF the sentence is incomplete.
 
-        CRITICAL RULE (Intent Detection):
-        - The transcript contains audio from the interview.
-        - If the text sounds like the **Interviewer asking a question** (e.g., "Tell me about yourself", "How did you handle Redis?", "What is React?"), please find the best matching card ID.
-        - If the text sounds like the **Candidate answering** (e.g., "So, I used Redis to...", "I am a student at...", "The hardest part was..."), or if it is just a short noise, **YOU MUST RETURN null**.
+        RULES (Aggressive Matching):
         
-        Do NOT match the candidate's own answer back to the card. Only match QUESTIONS.
+        1. **Keyword Priority**: 
+           - If the text contains strong unique keywords matching a card (e.g., "Redis", "React hooks", "Introduction"), **MATCH IMMEDIATELY**. 
+           - Do not wait for a full sentence structure like "Can you tell me about...".
+        
+        2. **Partial Context**:
+           - Input: "Tell me about Re..." (STT might catch 'Re' or 'Red') -> If uncertain, return null.
+           - Input: "Tell me about Redis" -> Match ID: card_redis.
+           - Input: "Tell me about Redis and how you handled..." -> Keep matching ID: card_redis.
+
+        3. **Change of Mind**:
+           - If the previous match was "Redis", but the user continues "...actually, let's talk about Python", you must switch to the Python card.
+
+        4. **Intent Filter**:
+           - Still try to ignore the candidate's own answers (e.g., statements starting with "I used...", "I did..."). 
+           - But if it's ambiguous, err on the side of showing the card (it's better to show something useful than nothing).
 
         Output JSON format:
         {{
