@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import InterviewCard from './components/InterviewCard'
 import KnowledgeBasePage from './pages/KnowledgeBasePage'
 import SwitchButton from './components/SwitchButton';
@@ -7,33 +7,42 @@ function App() {
   // 新增状态：控制当前显示哪个页面 ('interview' 或 'knowledge')
   const [currentPage, setCurrentPage] = useState(() => {
     const savedPage = localStorage.getItem('recallai_currentPage');
-    // 如果找到了，就用保存的值；否则默认回到 'interview' 模式
     return savedPage || 'interview'; 
   });
+
   // 1. 定义状态
   const [activeCard, setActiveCard] = useState(null); // 当前显示的卡片
   const [showCard, setShowCard] = useState(false);    // 控制动画显示/隐藏
   const [isRunning, setIsRunning] = useState(false); // 后端是否在监听
   const [status, setStatus] = useState("等待连接后端..."); // 调试用的状态文字
+  
+  // ✨ 新增：逐字稿列表
+  const [transcript, setTranscript] = useState([]);
+  // ✨ 新增：用于自动滚动的锚点
+  const transcriptEndRef = useRef(null);
 
-  // 显示实时字幕
-  const [transcript, setTranscript] = useState('');
-
-  // 将 setCurrentPage 封装为返回函数
+  // 🔥 2. 新增：将 setCurrentPage 封装为返回函数
   const handleReturnToInterview = () => {
     setCurrentPage('interview');
     // 停止正在进行的录音，以防在知识库页时麦克风被占用
     stopInterview(); 
   };
 
-  // 2. 核心逻辑：每隔 1 秒去问一次后端
+  // ✨ 自动滚动逻辑：当 transcript 更新时，滚到底部
+  useEffect(() => {
+    if (currentPage === 'interview') {
+      transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [transcript, currentPage]);
+
+  // 2. 核心逻辑：每隔 100ms 去问一次后端
   useEffect(() => {
     // 只有在面试模式才进行轮询
     if (currentPage !== 'interview') return;
 
-
     const intervalId = setInterval(async () => {
       try {
+        // 发送请求给后端接口
         const response = await fetch('http://127.0.0.1:8000/api/poll');
         
         if (!response.ok) {
@@ -51,8 +60,9 @@ function App() {
           setStatus("正在监听 AI 大脑... 🟢");
         }
 
-        if (data.text){
-          setTranscript(data.text);
+        // ✨ 更新逐字稿 (如果后端返回了 transcript 字段)
+        if (data.transcript) {
+            setTranscript(data.transcript);
         }
 
         // 3. 判断逻辑：后端可能返回两种结构：{ card } 或 老的 { card_id, card_data }
@@ -66,10 +76,10 @@ function App() {
               const uiCard = {
                 id: card.id,
                 title: card.topic || card.title || "",
-                  // InterviewCard expects content as an array of lines
-                  content: Array.isArray(card.content)
-                    ? card.content
-                    : (typeof card.content === 'string' ? card.content.split('\n') : []),
+                // InterviewCard expects content as an array of lines
+                content: Array.isArray(card.content)
+                  ? card.content
+                  : (typeof card.content === 'string' ? card.content.split('\n') : []),
                 tags: Array.isArray(card.tags) ? card.tags : (card.tags ? [card.tags] : [])
               };
 
@@ -83,7 +93,7 @@ function App() {
 
       } catch (error) {
         setStatus("后端未启动或网络错误 ⚠️");
-        console.error("Polling error:", error);
+        // console.error("Polling error:", error); // 既然是轮询，出错太频繁可以先注释掉log
       }
     }, 100); // 轮询间隔 100毫秒
 
@@ -103,14 +113,15 @@ function App() {
     try {
       const res = await fetch('http://127.0.0.1:8000/api/start', { method: 'POST' });
       if (res.ok) {
-        setStatus('已发送启动指令，后端正在启动...');
+        setStatus('已发送启动指令...');
         setIsRunning(true);
+        setTranscript([]); // 启动时清空前端显示
       } else {
         setStatus('启动请求失败');
       }
     } catch (err) {
       console.error('start error', err);
-      setStatus('启动出错，检查后端或网络');
+      setStatus('启动出错，检查后端');
     }
   };
 
@@ -126,45 +137,66 @@ function App() {
       }
     } catch (err) {
       console.error('stop error', err);
-      setStatus('停止出错，检查后端或网络');
+      setStatus('停止出错，检查后端');
     }
   };
+
+  // 监听空格键回退 (你之前要求的功能)
+  useEffect(() => {
+    const handleKeyDown = async (event) => {
+      if (event.code === 'Space' && currentPage === 'interview') {
+        // 注意：如果焦点在输入框里可能要排除，但这里暂时全局监听
+        // event.preventDefault(); // 视情况开启，防止滚动页面
+        console.log("Space pressed: Rewinding...");
+        try {
+          await fetch('http://127.0.0.1:8000/api/rewind', { method: 'POST' });
+        } catch (error) {
+          console.error("Rewind failed:", error);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage]);
+
 
   if (currentPage === 'knowledge') {
     return (
         <>
-          {/* ⚠️ 移除固定位置的 SwitchButton，只渲染 KnowledgeBasePage */}
           <KnowledgeBasePage 
-              handleReturnToInterview={handleReturnToInterview} // <-- 传递返回函数
+              handleReturnToInterview={handleReturnToInterview} 
           />
         </>
     );
   }
 
-// 下面的 interview 模式渲染也要确保传了
-return (
-  <div style={{ 
-    /* ... 样式 ... */
-  }}>
-    <SwitchButton 
+  // Interview 模式界面
+  return (
+    <div style={{ 
+      padding: '20px',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      maxWidth: '800px',
+      margin: '0 auto'
+    }}>
+      <SwitchButton 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 
-    />
+      />
       
-      <h1>RecallAI 启动中</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '10px' }}>RecallAI 助手</h1>
       
       {/* 状态指示灯 */}
       <div style={{ 
-        marginTop: '20px', 
         padding: '8px 16px', 
         background: 'white', 
-        borderRadius: '20px',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-        color: '#666',
-        fontSize: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px'
+        borderRadius: '12px', 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
+        color: '#666', 
+        fontSize: '14px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px',
+        marginBottom: '16px'
       }}>
         <div style={{
           width: '8px', 
@@ -176,17 +208,20 @@ return (
       </div>
 
       {/* 控制按钮：开始 / 停止 */}
-      <div style={{ marginTop: '12px', display: 'flex', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         <button
           onClick={startInterview}
           disabled={isRunning}
           style={{
-            padding: '8px 14px',
-            borderRadius: '12px',
+            flex: 1,
+            padding: '10px 14px',
+            borderRadius: '10px',
             border: 'none',
-            background: isRunning ? '#d1ffd6' : '#34c759',
-            color: isRunning ? '#6b6b6b' : 'white',
-            cursor: isRunning ? 'not-allowed' : 'pointer'
+            background: isRunning ? '#e0e0e0' : '#007AFF',
+            color: isRunning ? '#999' : 'white',
+            fontWeight: '500',
+            cursor: isRunning ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s'
           }}
         >
           Start
@@ -196,40 +231,64 @@ return (
           onClick={stopInterview}
           disabled={!isRunning}
           style={{
-            padding: '8px 14px',
-            borderRadius: '12px',
+            flex: 1,
+            padding: '10px 14px',
+            borderRadius: '10px',
             border: 'none',
-            background: !isRunning ? '#f5f5f5' : '#ff3b30',
-            color: !isRunning ? '#6b6b6b' : 'white',
-            cursor: !isRunning ? 'not-allowed' : 'pointer'
+            background: !isRunning ? '#e0e0e0' : '#FF3B30',
+            color: !isRunning ? '#999' : 'white',
+            fontWeight: '500',
+            cursor: !isRunning ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s'
           }}
         >
           Stop
         </button>
       </div>
 
-      {/* 实时字幕显示区域 */}
+      {/* ✨ Transcript 逐字稿区域 (深色背景，模拟终端/字幕效果) */}
       <div style={{
-          marginTop: '40px',
-          padding: '20px',
-          width: '80%',
-          maxWidth: '800px',
-          minHeight: '80px',
-          background: 'rgba(255, 255, 255, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          borderRadius: '12px',
-          textAlign: 'center'
+        background: '#1c1c1e', 
+        borderRadius: '12px',
+        padding: '18px',
+        height: '600px',       // 固定高度，超过滚动
+        overflowY: 'auto',     
+        color: '#e0e0e0',
+        fontSize: '15px',
+        lineHeight: '1.5',
+        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)',
+        marginBottom: '20px',
+        border: '1px solid #333'
       }}>
-          <p style={{ margin: 0, color: 'white', fontSize: '24px', fontWeight: 500 }}>
-              {transcript || "请点击 Start 按钮并对着麦克风说话..."}
-          </p>
+        {transcript.length === 0 ? (
+          <div style={{ color: '#555', textAlign: 'center', marginTop: '80px' }}>
+            暂无对话记录... (请点击Start开始)
+          </div>
+        ) : (
+          transcript.map((item, index) => (
+            <div key={index} style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
+              <span style={{ 
+                color: '#666', 
+                fontSize: '11px', 
+                minWidth: '40px',
+                fontFamily: 'monospace',
+                paddingTop: '2px'
+              }}>
+                {item.timestamp}
+              </span>
+              <span style={{ color: '#ddd' }}>{item.text}</span>
+            </div>
+          ))
+        )}
+        {/* 这是一个看不见的元素，用于自动滚动到底部 */}
+        <div ref={transcriptEndRef} />
       </div>
 
-      <p style={{ marginTop: '20px', color: '#86868b', fontSize: '13px' }}>
-        请对着麦克风说话，AI 匹配到关键词后将自动弹出卡片。
+      <p style={{ color: '#86868b', fontSize: '12px', textAlign: 'center' }}>
+        💡 按空格键可回退到上一张卡片
       </p>
 
-      {/* 还是那个漂亮的卡片组件，逻辑没变 */}
+      {/* 卡片组件 */}
       {activeCard && (
         <InterviewCard data={activeCard} isVisible={showCard} />
       )}
@@ -241,13 +300,16 @@ return (
           style={{
             position: 'fixed',
             bottom: '30px',
-            padding: '8px 16px',
-            background: 'rgba(0,0,0,0.5)',
+            right: '30px',
+            padding: '16px 32px',
+            background: 'rgba(0,0,0,0.6)',
             color: 'white',
             border: 'none',
-            borderRadius: '20px',
+            borderRadius: '40px',
             cursor: 'pointer',
-            backdropFilter: 'blur(10px)'
+            backdropFilter: 'blur(10px)',
+            fontSize: '24px',
+            zIndex: 9999
           }}
         >
           收起卡片
