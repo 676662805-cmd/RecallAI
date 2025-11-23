@@ -11,16 +11,48 @@ class AudioService:
     def __init__(self):
         self.recognizer = sr.Recognizer()
         
-        # 稳健设置
+        # --- 你的稳健设置 ---
         self.recognizer.pause_threshold = 0.8
         self.recognizer.energy_threshold = 300 
         self.recognizer.dynamic_energy_threshold = True 
         
+        # --- ✨ 新增：初始化时自动查找设备 ---
+        self.target_device_index = self._find_device_index()
+        
+    def _find_device_index(self):
+        """
+        根据 .env 中的 MIC_DEVICE_NAME 查找设备索引
+        """
+        target_name = os.getenv("MIC_DEVICE_NAME", "Default")
+        
+        # 如果配置是 Default 或空，使用系统默认
+        if not target_name or target_name.lower() == "default":
+            print("🎧 Using Default Microphone (System Default)")
+            return None
+            
+        print(f"🔍 Searching for audio device containing: '{target_name}'...")
+        
+        # 遍历设备列表进行模糊匹配
+        try:
+            mics = sr.Microphone.list_microphone_names()
+            for i, name in enumerate(mics):
+                if target_name.lower() in name.lower():
+                    print(f"✅ Found Target Device: [Index {i}] {name}")
+                    return i
+        except Exception as e:
+            print(f"⚠️ Error listing microphones: {e}")
+
+        print(f"⚠️ Device '{target_name}' not found! Falling back to Default Mic.")
+        return None
+
     def listen_and_transcribe(self):
-        print("🎤 Listening... (Using Groq Turbo)")
+        # 显示当前正在监听哪个设备，方便调试
+        device_status = f"Index {self.target_device_index}" if self.target_device_index is not None else "Default Mic"
+        print(f"🎤 Listening on [{device_status}]... (Using Groq Turbo)")
         
         try:
-            with sr.Microphone() as source:
+            # 关键修改：传入 device_index
+            with sr.Microphone(device_index=self.target_device_index) as source:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 # 录音参数
                 audio_data = self.recognizer.listen(source, timeout=5, phrase_time_limit=20)
@@ -30,12 +62,12 @@ class AudioService:
             audio_file = io.BytesIO(wav_bytes)
             audio_file.name = "audio.wav" 
 
-            # --- 关键修改：使用 Turbo 模型 ---
+            # 使用 Turbo 模型 + 强制英文
             transcript = client.audio.transcriptions.create(
-                model="whisper-large-v3-turbo",  # <--- 已更新为最新可用模型
+                model="whisper-large-v3-turbo", 
                 file=audio_file,
                 response_format="json",
-                language="en" # 依然强制英文，防止幻觉
+                language="en" 
             )
             
             text = transcript.text
