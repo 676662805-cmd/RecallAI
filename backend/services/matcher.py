@@ -1,21 +1,18 @@
 import json
 import os
-from openai import OpenAI
+from groq import Groq  # <--- 改用 Groq
 from dotenv import load_dotenv
 
 # Load env vars
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# 使用 Groq 客户端
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class MatchService:
     def __init__(self):
-        # Load cards into memory when service starts
-        # 加载卡片数据到内存中
         self.cards = self._load_cards()
 
     def _load_cards(self):
-        # Read the JSON file
-        # 读取本地的 JSON 文件
         try:
             current_dir = os.path.dirname(__file__)
             file_path = os.path.join(current_dir, "..", "data", "cards.json")
@@ -26,23 +23,17 @@ class MatchService:
             return []
 
     def find_best_match(self, user_query: str):
-        """
-        Send query + card summaries to GPT-4o-mini to find the best ID.
-        核心逻辑：把问题和卡片发给 AI 让它选一个 ID。
-        """
         
-        # 1. Prepare a simplified list for the AI (save tokens)
-        # 只发送 ID 和 Topic 给 AI，节省 token 费用
+        # 1. Prepare simplified list
         card_summaries = [
             f"ID: {c['id']} | Topic: {c['topic']} | Content Preview: {c['content'][:50]}..."
             for c in self.cards
         ]
         cards_text = "\n".join(card_summaries)
 
-        # 2. Construct the Prompt
-        # 这是最关键的提示词
+        # 2. Construct the Prompt (Aggressive Matching)
         system_prompt = f"""
-        You are an intelligent assistant for an interviewee.
+        You are a real-time assistant for an interviewee.
         Here is the knowledge base (cards):
         {cards_text}
 
@@ -53,19 +44,15 @@ class MatchService:
         
         1. **Keyword Priority**: 
            - If the text contains strong unique keywords matching a card (e.g., "Redis", "React hooks", "Introduction"), **MATCH IMMEDIATELY**. 
-           - Do not wait for a full sentence structure like "Can you tell me about...".
+           - Do not wait for a full sentence structure.
         
         2. **Partial Context**:
-           - Input: "Tell me about Re..." (STT might catch 'Re' or 'Red') -> If uncertain, return null.
+           - Input: "Tell me about Re..." -> Return null (uncertain).
            - Input: "Tell me about Redis" -> Match ID: card_redis.
-           - Input: "Tell me about Redis and how you handled..." -> Keep matching ID: card_redis.
 
-        3. **Change of Mind**:
-           - If the previous match was "Redis", but the user continues "...actually, let's talk about Python", you must switch to the Python card.
-
-        4. **Intent Filter**:
-           - Still try to ignore the candidate's own answers (e.g., statements starting with "I used...", "I did..."). 
-           - But if it's ambiguous, err on the side of showing the card (it's better to show something useful than nothing).
+        3. **Intent Filter**:
+           - Try to ignore the candidate's own answers. 
+           - But if ambiguous, err on the side of showing the card.
 
         Output JSON format:
         {{
@@ -73,16 +60,16 @@ class MatchService:
         }}
         """
 
-        # 3. Call OpenAI
+        # 3. Call Groq Llama 3.1
         try:
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
+                model="llama-3.1-8b-instant",  # <--- 极速模型
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"User Input: {user_query}"}
                 ],
-                response_format={"type": "json_object"}, # Force JSON output
-                temperature=0.1 # Low temperature for consistency
+                response_format={"type": "json_object"}, 
+                temperature=0.0 # Llama 3.1 设为 0 效果最好
             )
             
             # 4. Parse Result
@@ -90,7 +77,6 @@ class MatchService:
             result_json = json.loads(result_text)
             match_id = result_json.get("best_match_id")
 
-            # Return the full card object if found
             if match_id:
                 for card in self.cards:
                     if card['id'] == match_id:
