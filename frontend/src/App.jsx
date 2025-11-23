@@ -51,7 +51,7 @@ function App() {
 
               setActiveCard(uiCard);
               setShowCard(true);
-            }, 200);
+            }, 50);
           }
         } else {
           // 没有匹配到新卡片：不自动收起，保持现状
@@ -61,7 +61,7 @@ function App() {
         setStatus("后端未启动或网络错误 ⚠️");
         console.error("Polling error:", error);
       }
-    }, 1000); // 1000毫秒 = 1秒
+    }, 100); // 轮询间隔 100毫秒
 
     // 清理函数：组件卸载时停止轮询
     return () => clearInterval(intervalId);
@@ -151,7 +151,7 @@ function App() {
             cursor: isRunning ? 'not-allowed' : 'pointer'
           }}
         >
-          开始
+          Start
         </button>
 
         <button
@@ -166,7 +166,7 @@ function App() {
             cursor: !isRunning ? 'not-allowed' : 'pointer'
           }}
         >
-          停止
+          Stop
         </button>
       </div>
 
