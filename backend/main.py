@@ -1,5 +1,6 @@
 import threading
 import time
+from difflib import SequenceMatcher
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from services.audio import AudioService
@@ -7,7 +8,6 @@ from services.matcher import MatchService
 
 app = FastAPI()
 
-# 1. 允许跨域
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,94 +16,144 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 2. 初始化服务
 audio_service = AudioService()
 match_service = MatchService()
 
-# 3. 全局变量 (带缓存功能)
 class GlobalState:
     is_running = False
     latest_text = ""
     latest_card = None
+    sentence_buffer = ""       
+    last_update_time = 0
     
-    # --- 新增缓存机制 ---
-    sentence_buffer = ""       # 存放可能是断开的半截话
-    last_update_time = 0       # 上次更新缓存的时间
+    # --- ✨ 新增：历史记录栈 ---
+    card_history = []  # 用来存上一张、上上一张卡片
 
 state = GlobalState()
 
-# 4. 后台线程函数 (语义接龙逻辑)
-def background_listener():
-    print("🧵 Background listener thread started")
+# --- ✨ 新增：卡片更新封装函数 (带历史记录) ---
+def update_card(new_card):
+    # 只有当新卡片和当前卡片不一样时，才存入历史
+    if state.latest_card and state.latest_card.get('id') != new_card.get('id'):
+        state.card_history.append(state.latest_card)
+        # 限制历史长度，只存最近 10 张，防止内存泄露
+        if len(state.card_history) > 10:
+            state.card_history.pop(0)
     
-    # 缓存有效期 (秒)
-    # 如果 5 秒都没补全句子，说明之前的半截话没用了，扔掉
+    state.latest_card = new_card
+
+# --- 🛠️ 升级版防读屏函数 ---
+def is_reading_card(speech_text, card_content):
+    if not card_content or not speech_text:
+        return False
+        
+    speech_clean = speech_text.lower().strip()
+    card_clean = card_content.lower()
+
+    # 1. ⚡️ 提问豁免权 (Question Bypass)
+    # 如果用户是在纠正或者提问，即使关键词重合，也必须放行！
+    question_starters = [
+        "what", "how", "why", "can you", "could you", 
+        "tell me", "define", "explain", "is it", "do you"
+    ]
+    if any(speech_clean.startswith(q) for q in question_starters):
+        return False
+
+    # 2. 🔍 连续最长公共子串 (Longest Common Substring)
+    matcher = SequenceMatcher(None, speech_clean, card_clean)
+    match = matcher.find_longest_match(0, len(speech_clean), 0, len(card_clean))
+    
+    # 匹配比例：最长连续重合字符数 / 语音总字符数
+    # 只有当连续重合超过 80% 时，才认为是照着念
+    ratio = match.size / len(speech_clean)
+    
+    return ratio > 0.8
+
+def background_listener():
+    print("🧵 Background listener started")
     BUFFER_TIMEOUT = 5.0 
     
     while state.is_running:
-        # 监听
         text = audio_service.listen_and_transcribe()
         
         if text:
+            # 防读屏检查
+            if state.latest_card and is_reading_card(text, state.latest_card.get('content', '')):
+                print(f"🙊 Detected user reading card: '{text}' -> IGNORED")
+                state.last_update_time = time.time()
+                continue
+
             current_time = time.time()
-            
-            # 1. 检查超时：如果距离上次说话太久，清空旧缓存，重新开始
+            # 超时清理
             if current_time - state.last_update_time > BUFFER_TIMEOUT:
                 if state.sentence_buffer:
-                    print("🧹 Buffer timeout (Cleared old context)")
+                    print("🧹 Buffer timeout (Reset)")
                     state.sentence_buffer = ""
             
             state.last_update_time = current_time
-
-            # 2. 尝试匹配：当前这一句 (试试运气，万一这句就是完整的呢？)
-            # 或者：如果缓存里有东西，先拼起来试试
             
+            # 防止“Thank you”等短语
+            if state.sentence_buffer and len(state.sentence_buffer.split()) < 3:
+                if current_time - state.last_update_time > 2.0:
+                     print("🧹 Cleared stale short buffer (noise/politeness)")
+                     state.sentence_buffer = ""
+
+            # 拼接
             current_full_text = (state.sentence_buffer + " " + text).strip()
             print(f"🧩 Analyzing: [{current_full_text}]")
+            state.latest_text = current_full_text 
             
-            state.latest_text = current_full_text # 更新前端显示
+            # --- 逻辑核心 ---
             
-            # 3. 调用 AI 匹配
+            # 1. 先找本地卡片
             card = match_service.find_best_match(current_full_text)
             
             if card:
-                # A. 匹配成功！
-                print(f"✅ MATCH FOUND: {card['topic']}")
-                state.latest_card = card
-                
-                # 关键：问题解决了，缓存清空，准备迎接下一个新问题
+                print(f"✅ LOCAL MATCH: {card['topic']}")
+                update_card(card) # ✨ 使用新函数更新
                 state.sentence_buffer = "" 
+            
             else:
-                # B. 匹配失败 (可能是没说完，也可能是真的没匹配到)
-                print("❌ No match (Appending to buffer...)")
-                
-                # 关键：把这句话存起来，等着和下一句拼
-                state.sentence_buffer = current_full_text
-                # 注意：这里不更新 latest_card 为 None，保持上一张卡片（或者你可以根据需求清空）
+                # 2. 没找到，尝试 AI 生成
+                if len(current_full_text.split()) > 3:
+                    ai_card = match_service.generate_ai_answer(current_full_text)
+                    
+                    if ai_card:
+                        print(f"🧞‍♂️ AI GENERATED: {ai_card['topic']}")
+                        update_card(ai_card) # ✨ 使用新函数更新
+                        state.sentence_buffer = "" 
+                    else:
+                        # 3. AI 拒绝生成
+                        if len(current_full_text.split()) > 8:
+                            print("🧹 Text rejected by AI & too long -> Clearing buffer")
+                            state.sentence_buffer = ""
+                        else:
+                            print("⏳ Text kept in buffer...")
+                            state.sentence_buffer = current_full_text
+                else:
+                    state.sentence_buffer = current_full_text
         
         time.sleep(0.1)
-    print("🛑 Background listener stopped")
+    print("🛑 Stopped")
 
-# --- API 接口区域 (保持不变) ---
+# --- API 接口区域 ---
 
 @app.get("/")
-def read_root():
-    return {"status": "backend_ready"}
+def read_root(): return {"status": "ready"}
 
 @app.post("/api/start")
 def start_interview():
-    if state.is_running:
-        return {"msg": "Already running"}
+    if state.is_running: return {"msg": "Running"}
     state.is_running = True
-    thread = threading.Thread(target=background_listener)
-    thread.daemon = True
-    thread.start()
-    return {"msg": "Interview started"}
+    t = threading.Thread(target=background_listener)
+    t.daemon = True
+    t.start()
+    return {"msg": "Started"}
 
 @app.post("/api/stop")
 def stop_interview():
     state.is_running = False
-    return {"msg": "Interview stopped"}
+    return {"msg": "Stopped"}
 
 @app.get("/api/poll")
 def get_latest_result():
@@ -112,3 +162,17 @@ def get_latest_result():
         "text": state.latest_text,
         "card": state.latest_card
     }
+
+# --- ✨ 新增：回退接口 ---
+@app.post("/api/rewind")
+def rewind_card():
+    """回到上一张卡片"""
+    if state.card_history:
+        # 弹出栈顶（最近的一张）
+        previous_card = state.card_history.pop()
+        print(f"⏪ Rewind to: {previous_card['topic']}")
+        state.latest_card = previous_card
+        return {"success": True, "topic": previous_card['topic']}
+    else:
+        print("⚠️ No history to rewind")
+        return {"success": False, "msg": "No history"}
