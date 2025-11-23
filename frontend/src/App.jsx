@@ -1,15 +1,34 @@
 import { useState, useEffect } from 'react'
 import InterviewCard from './components/InterviewCard'
+import KnowledgeBasePage from './pages/KnowledgeBasePage'
+import SwitchButton from './components/SwitchButton';
 
 function App() {
+  // 新增状态：控制当前显示哪个页面 ('interview' 或 'knowledge')
+  const [currentPage, setCurrentPage] = useState(() => {
+    const savedPage = localStorage.getItem('recallai_currentPage');
+    // 如果找到了，就用保存的值；否则默认回到 'interview' 模式
+    return savedPage || 'interview'; 
+});
   // 1. 定义状态
   const [activeCard, setActiveCard] = useState(null); // 当前显示的卡片
   const [showCard, setShowCard] = useState(false);    // 控制动画显示/隐藏
   const [isRunning, setIsRunning] = useState(false); // 后端是否在监听
   const [status, setStatus] = useState("等待连接后端..."); // 调试用的状态文字
 
+  // 🔥 2. 新增：将 setCurrentPage 封装为返回函数
+  const handleReturnToInterview = () => {
+    setCurrentPage('interview');
+    // 停止正在进行的录音，以防在知识库页时麦克风被占用
+    stopInterview(); 
+  };
+
   // 2. 核心逻辑：每隔 1 秒去问一次后端
   useEffect(() => {
+    // 只有在面试模式才进行轮询
+    if (currentPage !== 'interview') return;
+
+
     const intervalId = setInterval(async () => {
       try {
         // 发送请求给 B 同学的后端接口 (注意：这个接口 B 可能还没写好，没关系，我们先写好接收端)
@@ -43,9 +62,9 @@ function App() {
                 id: card.id,
                 title: card.topic || card.title || "",
                 // InterviewCard expects content as an array of lines
-                content: Array.isArray(card.content)
-                  ? card.content
-                  : (typeof card.content === 'string' ? card.content.split('\n') : []),
+                content: Array.isArray(card.components)
+                  ? card.components
+                  : (typeof card.components === 'string' ? card.components.split('\n') : []),
                 tags: Array.isArray(card.tags) ? card.tags : (card.tags ? [card.tags] : [])
               };
 
@@ -65,10 +84,14 @@ function App() {
 
     // 清理函数：组件卸载时停止轮询
     return () => clearInterval(intervalId);
-  }, [activeCard]);
+  }, [activeCard, currentPage]);
 
   // 手动关闭卡片
   const closeCard = () => setShowCard(false);
+
+  useEffect(() => {
+    localStorage.setItem('recallai_currentPage', currentPage);
+  }, [currentPage]);
 
   // 启动后端监听
   const startInterview = async () => {
@@ -102,16 +125,26 @@ function App() {
     }
   };
 
-  return (
-    <div style={{ 
-      height: '100vh', 
-      background: '#f5f5f7', 
-      display: 'flex', 
-      flexDirection: 'column',
-      alignItems: 'center', 
-      justifyContent: 'center',
-      fontFamily: '-apple-system, sans-serif'
-    }}>
+  if (currentPage === 'knowledge') {
+    return (
+        <>
+          {/* ⚠️ 移除固定位置的 SwitchButton，只渲染 KnowledgeBasePage */}
+          <KnowledgeBasePage 
+              handleReturnToInterview={handleReturnToInterview} // <-- 传递返回函数
+          />
+        </>
+    );
+  }
+
+// 下面的 interview 模式渲染也要确保传了
+return (
+  <div style={{ 
+    /* ... 样式 ... */
+  }}>
+    <SwitchButton 
+        currentPage={currentPage} 
+        setCurrentPage={setCurrentPage} 
+    />
       
       <h1>RecallAI 启动中</h1>
       
