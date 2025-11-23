@@ -9,14 +9,17 @@ function App() {
     const savedPage = localStorage.getItem('recallai_currentPage');
     // 如果找到了，就用保存的值；否则默认回到 'interview' 模式
     return savedPage || 'interview'; 
-});
+  });
   // 1. 定义状态
   const [activeCard, setActiveCard] = useState(null); // 当前显示的卡片
   const [showCard, setShowCard] = useState(false);    // 控制动画显示/隐藏
   const [isRunning, setIsRunning] = useState(false); // 后端是否在监听
   const [status, setStatus] = useState("等待连接后端..."); // 调试用的状态文字
 
-  // 🔥 2. 新增：将 setCurrentPage 封装为返回函数
+  // 显示实时字幕
+  const [transcript, setTranscript] = useState('');
+
+  // 将 setCurrentPage 封装为返回函数
   const handleReturnToInterview = () => {
     setCurrentPage('interview');
     // 停止正在进行的录音，以防在知识库页时麦克风被占用
@@ -31,10 +34,8 @@ function App() {
 
     const intervalId = setInterval(async () => {
       try {
-        // 发送请求给 B 同学的后端接口 (注意：这个接口 B 可能还没写好，没关系，我们先写好接收端)
         const response = await fetch('http://127.0.0.1:8000/api/poll');
         
-        // 如果后端挂了或者网络错误，跳进 catch
         if (!response.ok) {
           setStatus("后端连接断开 ❌");
           return;
@@ -48,6 +49,10 @@ function App() {
           setStatus(data.is_running ? "正在监听 AI 大脑... 🟢" : "后端未运行，点击开始按钮启动");
         } else {
           setStatus("正在监听 AI 大脑... 🟢");
+        }
+
+        if (data.text){
+          setTranscript(data.text);
         }
 
         // 3. 判断逻辑：后端可能返回两种结构：{ card } 或 老的 { card_id, card_data }
@@ -201,6 +206,23 @@ return (
         >
           Stop
         </button>
+      </div>
+
+      {/* 实时字幕显示区域 */}
+      <div style={{
+          marginTop: '40px',
+          padding: '20px',
+          width: '80%',
+          maxWidth: '800px',
+          minHeight: '80px',
+          background: 'rgba(255, 255, 255, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          borderRadius: '12px',
+          textAlign: 'center'
+      }}>
+          <p style={{ margin: 0, color: 'white', fontSize: '24px', fontWeight: 500 }}>
+              {transcript || "请点击 Start 按钮并对着麦克风说话..."}
+          </p>
       </div>
 
       <p style={{ marginTop: '20px', color: '#86868b', fontSize: '13px' }}>
