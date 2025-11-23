@@ -184,48 +184,37 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
     );
 };
 
-// 外部组件定义 2: TableView
+// 外部组件定义 2: TableView - 网格卡片布局 (Goodnotes 风格)
 const TableView = ({ theme, filteredCards, categories, activeCategory, handleEditCard, handleCreateClick, onDeleteCard }) => {
-    const [menuOpen, setMenuOpen] = useState(null);
     
     // 🔥 计算当前分类的名称
     const activeCategoryName = activeCategory 
         ? categories.find(cat => cat.id === activeCategory)?.name || '未知分类'
         : '';
-    
-    const handleMenuClick = (e, cardId) => {
-        e.stopPropagation();
-        setMenuOpen(menuOpen === cardId ? null : cardId);
-    };
 
     const handleDelete = (e, cardId) => {
         e.stopPropagation();
         if (window.confirm('确定要删除这张卡片吗？')) {
             onDeleteCard(cardId);
-            setMenuOpen(null);
         }
-    };
-
-    const handleEdit = (e, card) => {
-        e.stopPropagation();
-        handleEditCard(card);
-        setMenuOpen(null);
     };
     
     return (
-        <div style={{ 
-            padding: '30px 0 30px 30px', 
-            flexGrow: 1, 
-            overflowY: 'auto', 
-            background: theme.bgColor,
-            height: '100vh'
-        }}> 
+        <div 
+            style={{ 
+                padding: '30px 40px', 
+                flexGrow: 1, 
+                overflowY: 'auto', 
+                background: theme.bgColor,
+                height: '100vh'
+            }}
+        > 
             {/* 标题栏 */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingRight: '30px' }}>
-                <h1 style={{ fontSize: '28px', color: theme.textColor, margin: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <h1 style={{ fontSize: '28px', fontWeight: '700', color: theme.textColor, margin: 0 }}>
                     {!activeCategory 
                         ? '🎉 欢迎开始您的知识库之旅' 
-                        : `${activeCategoryName} (${filteredCards.length})`
+                        : activeCategoryName
                     }
                 </h1>
                 
@@ -242,112 +231,141 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                             whiteSpace: 'nowrap',
                             background: '#34c759', 
                             color: 'white', 
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
                         }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                     >
                         + 新建知识卡片
                     </button>
                 )}
             </div>
         
-            <div style={{ overflowX: 'auto', background: theme.cardBg, borderRadius: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', border: theme.isDark ? '1px solid #444' : '1px solid #e0e0e0' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '700px' }}>
-                    <thead>
-                        <tr style={{ borderBottom: `1px solid ${theme.isDark ? '#444' : '#f0f0f0'}`, color: '#8e8e93', fontSize: '14px', textAlign: 'left' }}>
-                            <th style={{ padding: '15px 10px', width: '35%' }}>标题 (Title)</th>
-                            <th style={{ padding: '15px 10px', width: '55%' }}>内容摘要 (Component)</th>
-                            <th style={{ padding: '15px 10px', width: '10%' }}></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {filteredCards.map(card => (
-                            <tr 
-                                key={card.id} 
-                                style={{ 
-                                    cursor: 'pointer', 
-                                    borderBottom: `1px solid ${theme.isDark ? '#444' : '#f9f9f9'}`, 
-                                    background: theme.cardBg,
-                                    position: 'relative'
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.isDark ? '#333' : '#fafafa'}
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = theme.isDark ? theme.cardBg : 'white'}
-                            >
-                                <td onClick={() => handleEditCard(card)} style={{ padding: '15px 10px', fontWeight: '600', color: theme.textColor }}>{card.topic}</td>
-                                <td onClick={() => handleEditCard(card)} style={{ padding: '15px 10px', color: theme.isDark ? '#aaa' : '#424245', fontSize: '14px' }}>
-                                    {card.components && card.components[0]}
-                                </td>
-                                <td style={{ padding: '15px 10px', textAlign: 'center', position: 'relative' }}>
-                                    <button
-                                        onClick={(e) => handleMenuClick(e, card.id)}
-                                        style={{
-                                            background: 'transparent',
-                                            border: 'none',
-                                            color: theme.textColor,
-                                            cursor: 'pointer',
-                                            fontSize: '18px',
-                                            padding: '5px 10px'
-                                        }}
-                                    >
-                                        ⋮
-                                    </button>
-                                    
-                                    {/* 下拉菜单 */}
-                                    {menuOpen === card.id && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            right: '10px',
-                                            top: '40px',
-                                            background: theme.cardBg,
-                                            border: theme.isDark ? '1px solid #444' : '1px solid #ddd',
-                                            borderRadius: '8px',
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                                            zIndex: 1000,
-                                            minWidth: '150px'
-                                        }}>
-                                            <button
-                                                onClick={(e) => handleEdit(e, card)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px 15px',
-                                                    border: 'none',
-                                                    background: 'transparent',
-                                                    color: theme.textColor,
-                                                    textAlign: 'left',
-                                                    cursor: 'pointer',
-                                                    fontSize: '14px',
-                                                    borderBottom: theme.isDark ? '1px solid #444' : '1px solid #f0f0f0'
-                                                }}
-                                                onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                ✏️ Re-edit
-                                            </button>
-                                            <button
-                                                onClick={(e) => handleDelete(e, card.id)}
-                                                style={{
-                                                    width: '100%',
-                                                    padding: '10px 15px',
-                                                    border: 'none',
-                                                    background: 'transparent',
-                                                    color: '#ff3b30',
-                                                    textAlign: 'left',
-                                                    cursor: 'pointer',
-                                                    fontSize: '14px'
-                                                }}
-                                                onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
-                                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                            >
-                                                🗑️ Delete
-                                            </button>
-                                        </div>
-                                    )}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-            {filteredCards.length === 0 && <p style={{color: '#888', marginTop: '30px'}}>当前分类下没有卡片。</p>}
+            {/* 网格卡片布局 */}
+            {filteredCards.length > 0 ? (
+                <div style={{ 
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+                    gap: '20px',
+                    marginBottom: '30px'
+                }}>
+                    {filteredCards.map(card => (
+                        <div 
+                            key={card.id}
+                            style={{
+                                position: 'relative',
+                                background: theme.cardBg,
+                                borderRadius: '12px',
+                                padding: '20px',
+                                boxShadow: theme.isDark 
+                                    ? '0 2px 8px rgba(0,0,0,0.3)' 
+                                    : '0 2px 8px rgba(0,0,0,0.08)',
+                                border: theme.isDark ? '1px solid #444' : '1px solid #e0e0e0',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s ease',
+                                height: '200px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                overflow: 'visible'
+                            }}
+                            onClick={() => handleEditCard(card)}
+                            onMouseEnter={e => {
+                                e.currentTarget.style.transform = 'translateY(-8px)';
+                                e.currentTarget.style.boxShadow = theme.isDark 
+                                    ? '0 8px 20px rgba(0,0,0,0.4)' 
+                                    : '0 8px 20px rgba(0,0,0,0.15)';
+                            }}
+                            onMouseLeave={e => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = theme.isDark 
+                                    ? '0 2px 8px rgba(0,0,0,0.3)' 
+                                    : '0 2px 8px rgba(0,0,0,0.08)';
+                            }}
+                        >
+                            {/* 卡片标题 */}
+                            <h3 style={{
+                                fontSize: '16px',
+                                fontWeight: '700',
+                                color: theme.textColor,
+                                margin: '0 0 12px 0',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {card.topic}
+                            </h3>
+
+                            {/* 卡片内容摘要 */}
+                            <p style={{
+                                fontSize: '13px',
+                                color: theme.isDark ? '#aaa' : '#666',
+                                margin: 0,
+                                lineHeight: '1.5',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 4,
+                                WebkitBoxOrient: 'vertical',
+                                flexGrow: 1
+                            }}>
+                                {card.components && card.components[0]}
+                            </p>
+
+                            {/* 星标和删除按钮 */}
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginTop: '12px',
+                                paddingTop: '12px',
+                                borderTop: theme.isDark ? '1px solid #444' : '1px solid #f0f0f0'
+                            }}>
+                                <button
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        fontSize: '16px',
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                        transition: 'transform 0.2s'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                    title="收藏"
+                                >
+                                    ☆
+                                </button>
+                                
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDelete(e, card.id);
+                                    }}
+                                    style={{
+                                        background: 'transparent',
+                                        border: 'none',
+                                        fontSize: '18px',
+                                        cursor: 'pointer',
+                                        padding: '4px',
+                                        color: '#ff3b30',
+                                        transition: 'transform 0.2s'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
+                                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                                    title="删除卡片"
+                                >
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <p style={{color: '#888', marginTop: '30px', fontSize: '15px'}}>
+                    {activeCategory ? '当前分类下没有卡片。' : '请选择一个分类以查看卡片。'}
+                </p>
+            )}
         </div>
     );
 };
