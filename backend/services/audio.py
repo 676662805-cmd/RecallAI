@@ -71,6 +71,19 @@ class AudioService:
             )
             
             text = transcript.text
+
+            hallucinations = [
+                "Thank you.", "Thank you", "Thanks.", 
+                "You", "You.."
+            ]
+
+            # 如果识别结果完全等于这些词（忽略大小写），直接扔掉
+            # 或者虽然不是完全相等，但在很短的句子里包含了这些
+            if text in hallucinations or (len(text) < 5 and "Thank" in text):
+                print(f"👻 Filtered Hallucination: '{text}'")
+                return None
+            
+
             print(f"🗣️ You said: {text}")
             return text
 
