@@ -1,5 +1,32 @@
 import React, { useState } from 'react';
 
+// 简短 ID 生成器：使用前缀 + 计数器
+let cardCounter = 1;
+
+// 初始化计数器（从 localStorage 读取已有的最大编号）
+if (typeof window !== 'undefined') {
+    const savedCards = localStorage.getItem('knowledgebase_cards');
+    if (savedCards) {
+        try {
+            const cards = JSON.parse(savedCards);
+            const maxId = cards.reduce((max, card) => {
+                if (typeof card.id === 'string' && card.id.startsWith('card_')) {
+                    const num = parseInt(card.id.replace('card_', ''));
+                    return Math.max(max, num);
+                }
+                return max;
+            }, 0);
+            cardCounter = maxId + 1;
+        } catch {
+            // 忽略解析错误
+        }
+    }
+}
+
+const generateCardId = () => {
+    return `card_${cardCounter++}`;
+};
+
 // CardEditorModal Component (Modal for creating and editing cards)
 // 🔥 1. Receive theme prop
 const CardEditorModal = ({ theme, cardData, isOpen, onClose, onSave, fixedCategory }) => {
@@ -21,7 +48,7 @@ const CardEditorModal = ({ theme, cardData, isOpen, onClose, onSave, fixedCatego
         e.preventDefault();
         
         const newCard = {
-            id: cardData ? cardData.id : Date.now(), 
+            id: cardData ? cardData.id : generateCardId(), 
             topic: title,
             components: components.split('\n').filter(line => line.trim() !== ''), 
             // 🔥 3. Key fix: Use fixedCategory prop directly as new card's category

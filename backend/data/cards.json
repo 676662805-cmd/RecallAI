@@ -1,22 +1,7 @@
 [
   {
-    "id": "card_001",
-    "topic": "Self Introduction",
-    "content": "I am a CS student at a US university. I specialize in Full Stack development using React and Python. I have built an AI interview assistant.Information Systems undergraduate specializing in Excel modeling, workflow automation, and data-driven optimization. Experienced in building scalable automation engines for SaaS licensing, consolidating large datasets, and developing models that"
-  },
-  {
-    "id": "card_002",
-    "topic": "Project Challenge - Redis",
-    "content": "The hardest part was handling high concurrency. I used Redis Lua scripts to ensure atomicity during inventory deduction to prevent overselling."
-  },
-  {
-    "id": "card_003",
-    "topic": "Why OpenAI API?",
-    "content": "I chose OpenAI gpt-4o-mini because it offers low latency (sub-second) and high accuracy for JSON output, which is critical for real-time apps."
-  },
-  {
-    "id": "card_004",
-    "topic": "React Hooks",
-    "content": "I use useEffect for side effects and useState for state management. Custom hooks help reuse logic across components."
+    "id": 1763891314602,
+    "topic": "Database Sharding Strategy",
+    "content": "1. Sharding is horizontal partitioning of data across multiple database instances.\\n2. Key method: Hash/Key-based Sharding (distribute by primary key).\\n3. Directory-based Sharding: Uses a lookup service to map data to a shard.\\n4. Risk: Complexity, costly re-sharding, JOIN operations become harder."
   }
 ]

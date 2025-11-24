@@ -1,14 +1,18 @@
 import { useState, useEffect, useRef } from 'react'
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import InterviewCard from './components/InterviewCard'
 import KnowledgeBasePage from './pages/KnowledgeBasePage'
+import TranscriptHistoryPage from './pages/TranscriptHistoryPage'
 import SwitchButton from './components/SwitchButton';
 
 function App() {
-  // New state: control which page to display ('interview' or 'knowledge')
-  const [currentPage, setCurrentPage] = useState(() => {
-    const savedPage = localStorage.getItem('recallai_currentPage');
-    return savedPage || 'interview'; 
-  });
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Determine current page from URL
+  const currentPage = location.pathname === '/knowledge' ? 'knowledge' 
+                    : location.pathname === '/transcripts' ? 'transcriptHistory'
+                    : 'interview';
 
   // 1. Define state
   const [activeCard, setActiveCard] = useState(null); // Currently displayed card
@@ -20,12 +24,26 @@ function App() {
   const [transcript, setTranscript] = useState([]);
   // ✨ New: Anchor for auto-scroll
   const transcriptEndRef = useRef(null);
+  
+  // ✨ New: Transcript history for storing past recordings
+  const [transcriptHistory, setTranscriptHistory] = useState(() => {
+    const saved = localStorage.getItem('recallai_transcriptHistory');
+    return saved ? JSON.parse(saved) : [];
+  });
+  
+  const [currentTranscriptId, setCurrentTranscriptId] = useState(null);
 
-  // 🔥 2. New: Wrap setCurrentPage as return function
+  // 🔥 2. New: Wrap navigate as return function
   const handleReturnToInterview = () => {
-    setCurrentPage('interview');
+    navigate('/');
     // Stop recording to prevent microphone being occupied when in knowledge base
     stopInterview(); 
+  };
+  
+  const setCurrentPage = (page) => {
+    if (page === 'interview') navigate('/');
+    else if (page === 'knowledge') navigate('/knowledge');
+    else if (page === 'transcriptHistory') navigate('/transcripts');
   };
 
   // ✨ Auto-scroll logic: Scroll to bottom when transcript updates
@@ -116,6 +134,9 @@ function App() {
         setStatus('Startup command sent...');
         setIsRunning(true);
         setTranscript([]); // Clear frontend display on startup
+        // Create new transcript record
+        const newId = Date.now().toString();
+        setCurrentTranscriptId(newId);
       } else {
         setStatus('Startup request failed');
       }
@@ -132,6 +153,19 @@ function App() {
       if (res.ok) {
         setStatus('Backend listening stopped');
         setIsRunning(false);
+        // Save transcript to history
+        if (transcript && transcript.length > 0 && currentTranscriptId) {
+          const newRecord = {
+            id: currentTranscriptId,
+            timestamp: new Date().toISOString(),
+            transcript: transcript,
+            name: `Transcript ${new Date().toLocaleString()}`
+          };
+          const updated = [...transcriptHistory, newRecord];
+          setTranscriptHistory(updated);
+          localStorage.setItem('recallai_transcriptHistory', JSON.stringify(updated));
+        }
+        setCurrentTranscriptId(null);
       } else {
         setStatus('Stop request failed');
       }
@@ -160,18 +194,8 @@ function App() {
   }, [currentPage]);
 
 
-  if (currentPage === 'knowledge') {
-    return (
-        <>
-          <KnowledgeBasePage 
-              handleReturnToInterview={handleReturnToInterview} 
-          />
-        </>
-    );
-  }
-
-  // Interview mode interface
-  return (
+  // Render content based on route
+  const renderInterviewPage = () => (
     <div style={{ 
       padding: '20px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -183,7 +207,7 @@ function App() {
         setCurrentPage={setCurrentPage} 
       />
       
-      <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '10px' }}>RecallAI Assistant</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '10px', textAlign: 'center' }}>RecallAI</h1>
       
       {/* Status indicator */}
       <div style={{ 
@@ -317,7 +341,27 @@ function App() {
       )}
 
     </div>
-  )
+  );
+
+  // Main render with Routes
+  return (
+    <Routes>
+      <Route path="/" element={renderInterviewPage()} />
+      <Route path="/knowledge" element={
+        <KnowledgeBasePage handleReturnToInterview={handleReturnToInterview} />
+      } />
+      <Route path="/transcripts" element={
+        <TranscriptHistoryPage 
+          handleReturnToInterview={handleReturnToInterview}
+          transcriptHistory={transcriptHistory}
+          onUpdateTranscriptHistory={(updated) => {
+            setTranscriptHistory(updated);
+            localStorage.setItem('recallai_transcriptHistory', JSON.stringify(updated));
+          }}
+        />
+      } />
+    </Routes>
+  );
 }
 
 export default App

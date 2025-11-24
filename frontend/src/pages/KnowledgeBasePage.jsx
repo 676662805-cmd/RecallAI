@@ -469,14 +469,62 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
     const [creationKey, setCreationKey] = useState(0);
     
+    // 🔥 Load cards from backend on mount (if localStorage is empty)
+    useEffect(() => {
+        const loadFromBackend = async () => {
+            const localCards = localStorage.getItem('knowledgebase_cards');
+            if (!localCards || JSON.parse(localCards).length === 0) {
+                try {
+                    const response = await fetch('http://127.0.0.1:8000/api/cards');
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.cards && data.cards.length > 0) {
+                            // 转换后端格式到前端格式
+                            const frontendCards = data.cards.map(card => ({
+                                id: card.id,
+                                topic: card.topic,
+                                components: card.content.split('\n'),
+                                category: 'interview',
+                                isFavorite: false
+                            }));
+                            setCards(frontendCards);
+                            console.log('✅ Loaded cards from backend');
+                        }
+                    }
+                } catch (err) {
+                    console.log('⚠️ Could not load cards from backend:', err);
+                }
+            }
+        };
+        loadFromBackend();
+    }, []);
+    
     // 🔥 Listen to categories changes, auto save to localStorage
     useEffect(() => {
         localStorage.setItem('knowledgebase_categories', JSON.stringify(categories));
     }, [categories]);
     
-    // 🔥 Listen to cards changes, auto save to localStorage
+    // 🔥 Listen to cards changes, auto save to localStorage and sync to backend
     useEffect(() => {
         localStorage.setItem('knowledgebase_cards', JSON.stringify(cards));
+        
+        // 同步到后端
+        const syncToBackend = async () => {
+            try {
+                await fetch('http://127.0.0.1:8000/api/cards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cards })
+                });
+                console.log('✅ Cards synced to backend');
+            } catch (err) {
+                console.log('⚠️ Could not sync cards to backend:', err);
+            }
+        };
+        
+        if (cards.length > 0) {
+            syncToBackend();
+        }
     }, [cards]);
     
     // 🔥 Listen to activeCategory changes, auto save to localStorage

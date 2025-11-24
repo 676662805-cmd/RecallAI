@@ -217,3 +217,47 @@ def rewind_card():
     else:
         print("⚠️ No history to rewind")
         return {"success": False, "msg": "No history"}
+
+@app.get("/api/cards")
+def get_cards():
+    """获取所有 cards"""
+    cards_file = "data/cards.json"
+    if os.path.exists(cards_file):
+        try:
+            with open(cards_file, 'r', encoding='utf-8') as f:
+                cards = json.load(f)
+            return {"cards": cards}
+        except Exception as e:
+            print(f"Error reading cards: {e}")
+            return {"cards": []}
+    return {"cards": []}
+
+@app.post("/api/cards")
+def save_cards(cards_data: dict):
+    """保存 cards 到后端（从前端同步）"""
+    cards_file = "data/cards.json"
+    os.makedirs("data", exist_ok=True)
+    
+    try:
+        cards = cards_data.get("cards", [])
+        # 转换前端格式到后端格式
+        backend_cards = []
+        for card in cards:
+            backend_card = {
+                "id": card.get("id"),
+                "topic": card.get("topic"),
+                "content": "\n".join(card.get("components", [])) if isinstance(card.get("components"), list) else card.get("content", "")
+            }
+            backend_cards.append(backend_card)
+        
+        with open(cards_file, 'w', encoding='utf-8') as f:
+            json.dump(backend_cards, f, indent=2, ensure_ascii=False)
+        
+        # 重新加载 matcher service 的 cards
+        match_service.load_cards()
+        
+        print(f"✅ Saved {len(backend_cards)} cards to backend")
+        return {"success": True, "count": len(backend_cards)}
+    except Exception as e:
+        print(f"❌ Error saving cards: {e}")
+        return {"success": False, "error": str(e)}
