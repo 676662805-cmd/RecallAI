@@ -294,9 +294,27 @@ def get_transcripts():
                     # 从文件名提取时间戳：transcript_2025-11-23_20-32-58.json
                     timestamp_str = filename.replace('transcript_', '').replace('.json', '')
                     
+                    # 解析日期和时间：2025-11-23_20-32-58
+                    parts = timestamp_str.split('_')
+                    if len(parts) == 2:
+                        date_part = parts[0]  # 2025-11-23
+                        time_part = parts[1]  # 20-32-58
+                        
+                        # 转换日期格式：2025-11-23 -> 11/23/2025
+                        date_components = date_part.split('-')
+                        if len(date_components) == 3:
+                            formatted_date = f"{date_components[1]}/{date_components[2]}/{date_components[0]}"
+                            # 转换时间格式：20-32-58 -> 20:32:58
+                            formatted_time = time_part.replace('-', ':')
+                            display_name = f"{formatted_date} {formatted_time}"
+                        else:
+                            display_name = timestamp_str.replace('_', ' ').replace('-', ':')
+                    else:
+                        display_name = timestamp_str.replace('_', ' ').replace('-', ':')
+                    
                     transcript_list.append({
                         "id": filename.replace('.json', ''),  # 使用文件名作为ID
-                        "name": f"Transcript {timestamp_str.replace('_', ' ').replace('-', ':')}",
+                        "name": display_name,
                         "timestamp": timestamp_str,
                         "transcript": transcript_data
                     })

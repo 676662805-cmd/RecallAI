@@ -247,13 +247,14 @@ const TranscriptDetailView = ({ theme, transcript, onBack }) => {
                 }}>
                     {transcript && transcript.transcript && transcript.transcript.length > 0 ? (
                         transcript.transcript.map((item, index) => (
-                            <div key={index} style={{ marginBottom: '12px', display: 'flex', gap: '12px' }}>
+                            <div key={index} style={{ marginBottom: '12px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                                 <span style={{ 
                                     color: '#666', 
                                     fontSize: '12px', 
                                     minWidth: '50px',
                                     fontFamily: 'monospace',
-                                    flexShrink: 0
+                                    flexShrink: 0,
+                                    paddingTop: '2px'
                                 }}>
                                     {item.timestamp || ''}
                                 </span>
