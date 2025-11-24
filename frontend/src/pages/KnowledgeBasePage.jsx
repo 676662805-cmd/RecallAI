@@ -469,11 +469,12 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
     const [creationKey, setCreationKey] = useState(0);
     
-    // 🔥 Load cards from backend on mount (if localStorage is empty)
+    // 🔥 Load cards from backend only on first use (if localStorage doesn't exist at all)
     useEffect(() => {
         const loadFromBackend = async () => {
             const localCards = localStorage.getItem('knowledgebase_cards');
-            if (!localCards || JSON.parse(localCards).length === 0) {
+            // 只在 localStorage 完全不存在时才加载，而不是为空时
+            if (localCards === null) {
                 try {
                     const response = await fetch('http://127.0.0.1:8000/api/cards');
                     if (response.ok) {
@@ -508,7 +509,7 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     useEffect(() => {
         localStorage.setItem('knowledgebase_cards', JSON.stringify(cards));
         
-        // 同步到后端
+        // 同步到后端（包括空数组，这样删除操作也会同步）
         const syncToBackend = async () => {
             try {
                 await fetch('http://127.0.0.1:8000/api/cards', {
@@ -516,15 +517,14 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ cards })
                 });
-                console.log('✅ Cards synced to backend');
+                console.log(`✅ Cards synced to backend (${cards.length} cards)`);
             } catch (err) {
                 console.log('⚠️ Could not sync cards to backend:', err);
             }
         };
         
-        if (cards.length > 0) {
-            syncToBackend();
-        }
+        // 总是同步，即使是空数组
+        syncToBackend();
     }, [cards]);
     
     // 🔥 Listen to activeCategory changes, auto save to localStorage

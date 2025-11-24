@@ -1,7 +1,1 @@
-[
-  {
-    "id": 1763891314602,
-    "topic": "Database Sharding Strategy",
-    "content": "1. Sharding is horizontal partitioning of data across multiple database instances.\\n2. Key method: Hash/Key-based Sharding (distribute by primary key).\\n3. Directory-based Sharding: Uses a lookup service to map data to a shard.\\n4. Risk: Complexity, costly re-sharding, JOIN operations become harder."
-  }
-]
+[]
