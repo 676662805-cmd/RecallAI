@@ -26,6 +26,10 @@ function App() {
   const [transcript, setTranscript] = useState([]);
   // ✨ New: Anchor for auto-scroll
   const transcriptEndRef = useRef(null);
+  const transcriptContainerRef = useRef(null);
+  // ✨ New: Track if user manually scrolled
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const prevTranscriptLength = useRef(0);
   
   // ✨ New: Transcript history for storing past recordings
   const [transcriptHistory, setTranscriptHistory] = useState([]);
@@ -61,12 +65,16 @@ function App() {
     else if (page === 'transcriptHistory') navigate('/transcripts');
   };
 
-  // ✨ Auto-scroll logic: Scroll to bottom when transcript updates
+  // ✨ Auto-scroll logic: Only scroll if user hasn't manually scrolled and there's new content
   useEffect(() => {
-    if (currentPage === 'interview') {
-      transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (currentPage === 'interview' && transcriptContainerRef.current) {
+      // Only auto-scroll if there's new content and user hasn't manually scrolled
+      if (transcript.length > prevTranscriptLength.current && !userHasScrolled) {
+        transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+      prevTranscriptLength.current = transcript.length;
     }
-  }, [transcript, currentPage]);
+  }, [transcript, currentPage, userHasScrolled]);
 
   // 2. Core logic: Poll backend every 100ms
   useEffect(() => {
@@ -149,6 +157,8 @@ function App() {
         setStatus('Startup command sent...');
         setIsRunning(true);
         setTranscript([]); // Clear frontend display on startup
+        setUserHasScrolled(false); // Reset scroll state
+        prevTranscriptLength.current = 0; // Reset transcript length counter
       } else {
         setStatus('Startup request failed');
       }
@@ -282,7 +292,20 @@ function App() {
       </div>
 
       {/* ✨ Transcript area (dark background, simulates terminal/subtitle effect) */}
-      <div style={{
+      <div 
+        ref={transcriptContainerRef}
+        onScroll={(e) => {
+          const container = e.target;
+          const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 10;
+          // If user scrolls to bottom, reset the scroll flag to allow auto-scroll again
+          if (isAtBottom) {
+            setUserHasScrolled(false);
+          } else {
+            // User scrolled away from bottom
+            setUserHasScrolled(true);
+          }
+        }}
+        style={{
         background: theme.isDark ? '#1c1c1e' : '#f5f5f7', 
         borderRadius: '12px',
         padding: '18px',
