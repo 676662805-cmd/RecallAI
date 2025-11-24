@@ -1,6 +1,7 @@
 import speech_recognition as sr
 import os
 import io
+import re
 from groq import Groq
 from dotenv import load_dotenv
 
@@ -70,19 +71,33 @@ class AudioService:
                 language="en" 
             )
             
-            text = transcript.text
+            text = transcript.text.strip()
 
+            # --- 增强的垃圾词过滤 ---
+            # 1. 完全匹配过滤（忽略大小写和标点）
             hallucinations = [
-                "Thank you.", "Thank you", "Thanks.", 
-                "You", "You.."
+                "thank you", "thanks", "you", "yeah", "yes", "okay", "ok", 
+                "um", "uh", "hmm", "mhm", "ah", "oh", "well"
             ]
-
-            # 如果识别结果完全等于这些词（忽略大小写），直接扔掉
-            # 或者虽然不是完全相等，但在很短的句子里包含了这些
-            if text in hallucinations or (len(text) < 5 and "Thank" in text):
-                print(f"👻 Filtered Hallucination: '{text}'")
+            
+            # 清理后的文本（去除标点符号）
+            text_clean = re.sub(r'[^\w\s]', '', text.lower())
+            
+            # 2. 如果整句话就是垃圾词
+            if text_clean in hallucinations:
+                print(f"👻 Filtered Hallucination (exact): '{text}'")
                 return None
             
+            # 3. 如果句子很短（<8个字符）且包含thank/you等关键词
+            if len(text) < 8 and any(word in text_clean for word in ["thank", "you", "thanks"]):
+                print(f"👻 Filtered Hallucination (short): '{text}'")
+                return None
+            
+            # 4. 如果只有1-2个单词且是常见礼貌用语
+            words = text_clean.split()
+            if len(words) <= 2 and all(w in hallucinations for w in words):
+                print(f"👻 Filtered Hallucination (polite): '{text}'")
+                return None
 
             print(f"🗣️ You said: {text}")
             return text
