@@ -36,6 +36,20 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
         }
     };
 
+    // Close menu when clicking outside
+    React.useEffect(() => {
+        const handleClickOutside = () => {
+            setMenuOpen(null);
+        };
+
+        if (menuOpen) {
+            document.addEventListener('click', handleClickOutside);
+            return () => {
+                document.removeEventListener('click', handleClickOutside);
+            };
+        }
+    }, [menuOpen]);
+
     return (
         <div style={{
             width: '280px',
@@ -131,9 +145,8 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                         }}
                     >
                         <div
-                            onClick={() => setActiveCategory(cat.id)}
                             style={{
-                                padding: '10px 35px 10px 15px', 
+                                padding: '10px 15px', 
                                 margin: '5px 0', 
                                 borderRadius: '8px', 
                                 cursor: 'pointer', 
@@ -152,13 +165,16 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                             onMouseEnter={e => e.currentTarget.style.backgroundColor = cat.id === activeCategory ? theme.accentColor : (theme.isDark ? '#333' : '#f0f0f5')}
                             onMouseLeave={e => e.currentTarget.style.backgroundColor = cat.id === activeCategory ? theme.accentColor : 'transparent'}
                         >
-                            <span style={{
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                flex: 1,
-                                minWidth: 0
-                            }}>{cat.name}</span>
+                            <span 
+                                onClick={() => setActiveCategory(cat.id)}
+                                style={{
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    flex: 1,
+                                    minWidth: 0
+                                }}
+                            >{cat.name}</span>
                             <button
                                 onClick={(e) => handleMenuClick(e, cat.id)}
                                 style={{
@@ -166,9 +182,13 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                                     border: 'none',
                                     color: cat.id === activeCategory ? '#fff' : theme.textColor,
                                     cursor: 'pointer',
-                                    fontSize: '18px',
-                                    padding: '0 5px',
-                                    lineHeight: '1'
+                                    fontSize: '20px',
+                                    padding: '0 0 0 10px',
+                                    lineHeight: '1',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    flexShrink: 0,
+                                    outline: 'none'
                                 }}
                             >
                                 ⋮
@@ -179,29 +199,33 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                         {menuOpen === cat.id && (
                             <div style={{
                                 position: 'absolute',
-                                right: '10px',
-                                top: '40px',
+                                right: '15px',
+                                top: '45px',
                                 background: theme.cardBg,
-                                border: theme.isDark ? '1px solid #444' : '1px solid #ddd',
-                                borderRadius: '8px',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                                border: 'none',
+                                borderRadius: '12px',
+                                boxShadow: theme.isDark 
+                                    ? '0 8px 24px rgba(0,0,0,0.4)' 
+                                    : '0 8px 24px rgba(0,0,0,0.12)',
                                 zIndex: 1000,
-                                minWidth: '150px'
+                                minWidth: '160px',
+                                overflow: 'hidden'
                             }}>
                                 <button
                                     onClick={() => handleRename(cat.id, cat.name)}
                                     style={{
                                         width: '100%',
-                                        padding: '10px 15px',
+                                        padding: '12px 16px',
                                         border: 'none',
                                         background: 'transparent',
                                         color: theme.textColor,
                                         textAlign: 'left',
                                         cursor: 'pointer',
                                         fontSize: '14px',
-                                        borderBottom: theme.isDark ? '1px solid #444' : '1px solid #f0f0f0'
+                                        fontWeight: '500',
+                                        transition: 'background-color 0.15s'
                                     }}
-                                    onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
+                                    onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#3a3a3c' : '#f0f0f5'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
                                     Rename
@@ -210,18 +234,20 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                                     onClick={() => handleDelete(cat.id)}
                                     style={{
                                         width: '100%',
-                                        padding: '10px 15px',
+                                        padding: '12px 16px',
                                         border: 'none',
                                         background: 'transparent',
-                                        color: '#ff3b30',
+                                        color: theme.textColor,
                                         textAlign: 'left',
                                         cursor: 'pointer',
-                                        fontSize: '14px'
+                                        fontSize: '14px',
+                                        fontWeight: '500',
+                                        transition: 'background-color 0.15s'
                                     }}
-                                    onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
+                                    onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#3a3a3c' : '#f0f0f5'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    🗑️ Delete
+                                    Delete
                                 </button>
                             </div>
                         )}
