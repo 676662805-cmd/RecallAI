@@ -29,6 +29,10 @@ electron/node_modules/
 backend/dist/
 backend/build/
 
+# Frontend release (electron-builder output)
+frontend/release/
+frontend/dist/
+
 # Environment variables
 .env
 .env.local

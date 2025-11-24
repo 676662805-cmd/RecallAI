@@ -1,17 +1,30 @@
 import speech_recognition as sr
 import os
+import sys
 import io
 import re
 from groq import Groq
 from dotenv import load_dotenv
 
-load_dotenv()
-api_key = os.getenv("GROQ_API_KEY")
-if not api_key:
-    print("⚠️ GROQ_API_KEY not set in environment. AI features will be disabled.")
-    client = None
+def get_base_path():
+    """获取程序运行的基础路径，支持开发和打包环境"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的 exe 运行时
+        return os.path.dirname(sys.executable)
+    else:
+        # 开发环境
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 加载 .env 文件（支持打包后的路径）
+env_path = os.path.join(get_base_path(), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    print(f"✅ Loaded .env from: {env_path}")
 else:
-    client = Groq(api_key=api_key)
+    load_dotenv()  # 尝试从默认位置加载
+    print(f"⚠️ .env not found at {env_path}, using default")
+
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 class AudioService:
     def __init__(self):
@@ -69,10 +82,6 @@ class AudioService:
             audio_file.name = "audio.wav" 
 
             # 使用 Turbo 模型 + 强制英文
-            if client is None:
-                print("⚠️ Groq client not available, cannot transcribe")
-                return None
-                
             transcript = client.audio.transcriptions.create(
                 model="whisper-large-v3-turbo", 
                 file=audio_file,

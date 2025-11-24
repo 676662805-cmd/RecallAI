@@ -3,7 +3,6 @@ import time
 import json
 import os
 import sys
-import shutil
 from datetime import datetime
 from difflib import SequenceMatcher
 from fastapi import FastAPI
@@ -11,29 +10,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from services.audio import AudioService
 from services.matcher import MatchService
 
-# --- Configuration ---
-# Default to 'data' in current directory, but allow override via command line arg
-DATA_DIR = "data"
-if len(sys.argv) > 1:
-    DATA_DIR = sys.argv[1]
+# ============================================
+# 获取程序运行的基础路径（支持 PyInstaller 打包）
+# ============================================
+def get_base_path():
+    """获取程序运行的基础路径，支持开发和打包环境"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的 exe 运行时，使用 exe 所在目录
+        return os.path.dirname(sys.executable)
+    else:
+        # 开发环境，使用当前脚本所在目录
+        return os.path.dirname(os.path.abspath(__file__))
 
-# Ensure data directory exists
-os.makedirs(DATA_DIR, exist_ok=True)
-TRANSCRIPTS_DIR = os.path.join(DATA_DIR, "transcripts")
-os.makedirs(TRANSCRIPTS_DIR, exist_ok=True)
-CARDS_FILE = os.path.join(DATA_DIR, "cards.json")
-
-# If cards.json doesn't exist in DATA_DIR, try to copy from default location (relative to executable)
-if not os.path.exists(CARDS_FILE):
-    # Look for default data in the same directory as the executable/script
-    base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
-    default_cards = os.path.join(base_dir, "data", "cards.json")
-    if os.path.exists(default_cards):
-        try:
-            shutil.copy2(default_cards, CARDS_FILE)
-            print(f"📋 Copied default cards from {default_cards} to {CARDS_FILE}")
-        except Exception as e:
-            print(f"⚠️ Failed to copy default cards: {e}")
+# 全局基础路径
+BASE_PATH = get_base_path()
+DATA_PATH = os.path.join(BASE_PATH, "data")
+TRANSCRIPTS_PATH = os.path.join(DATA_PATH, "transcripts")
+CARDS_FILE = os.path.join(DATA_PATH, "cards.json")
 
 app = FastAPI()
 
@@ -46,7 +39,7 @@ app.add_middleware(
 )
 
 audio_service = AudioService()
-match_service = MatchService(cards_file_path=CARDS_FILE)
+match_service = MatchService()
 
 class GlobalState:
     is_running = False
@@ -74,9 +67,12 @@ def save_transcript_to_file():
     if not state.transcript_log:
         return
     
+    # 创建存放目录
+    os.makedirs(TRANSCRIPTS_PATH, exist_ok=True)
+    
     # 文件名：transcript_2023-10-27_10-30.json
     filename = f"transcript_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
-    filepath = os.path.join(TRANSCRIPTS_DIR, filename)
+    filepath = os.path.join(TRANSCRIPTS_PATH, filename)
     
     try:
         with open(filepath, "w", encoding="utf-8") as f:
@@ -195,6 +191,9 @@ def background_listener():
 @app.get("/")
 def read_root(): return {"status": "ready"}
 
+@app.get("/health")
+def health_check(): return {"status": "healthy", "service": "RecallAI Backend"}
+
 @app.post("/api/start")
 def start_interview():
     if state.is_running: return {"msg": "Running"}
@@ -224,11 +223,8 @@ def stop_interview():
     else:
         print("⚠️ No transcript to save (empty)")
     
-    # ✨ 保存后立即清空，防止重复保存和显示旧卡片
+    # ✨ 保存后立即清空，防止重复保存
     state.transcript_log = []
-    state.latest_card = None
-    state.latest_text = ""
-    state.sentence_buffer = ""
     
     return {"msg": "Stopped"}
 
@@ -237,8 +233,7 @@ def get_latest_result():
     return {
         "is_running": state.is_running,
         "text": state.latest_text,
-        # 只有在运行时才返回卡片，避免启动时显示旧卡片
-        "card": state.latest_card if state.is_running else None,
+        "card": state.latest_card,
         # ✨ 返回 transcript 给前端展示
         "transcript": state.transcript_log 
     }
@@ -271,6 +266,7 @@ def get_cards():
 @app.post("/api/cards")
 def save_cards(cards_data: dict):
     """保存 cards 到后端（从前端同步）"""
+    os.makedirs(DATA_PATH, exist_ok=True)
     
     try:
         cards = cards_data.get("cards", [])
@@ -299,17 +295,16 @@ def save_cards(cards_data: dict):
 @app.get("/api/transcripts")
 def get_transcripts():
     """获取所有保存的 transcript 文件列表"""
-    
-    if not os.path.exists(TRANSCRIPTS_DIR):
+    if not os.path.exists(TRANSCRIPTS_PATH):
         return {"transcripts": []}
     
     try:
         transcript_list = []
-        files = sorted(os.listdir(TRANSCRIPTS_DIR), reverse=True)  # 最新的在前
+        files = sorted(os.listdir(TRANSCRIPTS_PATH), reverse=True)  # 最新的在前
         
         for filename in files:
             if filename.endswith('.json'):
-                filepath = os.path.join(TRANSCRIPTS_DIR, filename)
+                filepath = os.path.join(TRANSCRIPTS_PATH, filename)
                 try:
                     with open(filepath, 'r', encoding='utf-8') as f:
                         transcript_data = json.load(f)
@@ -351,7 +346,18 @@ def get_transcripts():
         print(f"❌ Error listing transcripts: {e}")
         return {"transcripts": []}
 
+# ============================================
+# 主程序入口
+# ============================================
 if __name__ == "__main__":
     import uvicorn
-    # Use port 8000 as expected by frontend
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    print("🚀 Starting RecallAI Backend Server...")
+    print(f"📍 Server will run on: http://localhost:8000")
+    print(f"📍 Health check: http://localhost:8000/health")
+    
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000,
+        log_level="info"
+    )
