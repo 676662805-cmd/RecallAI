@@ -28,12 +28,25 @@ function App() {
   const transcriptEndRef = useRef(null);
   
   // ✨ New: Transcript history for storing past recordings
-  const [transcriptHistory, setTranscriptHistory] = useState(() => {
-    const saved = localStorage.getItem('recallai_transcriptHistory');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [transcriptHistory, setTranscriptHistory] = useState([]);
   
-  const [currentTranscriptId, setCurrentTranscriptId] = useState(null);
+  // ✨ Load transcript history from backend when component mounts
+  useEffect(() => {
+    const loadTranscriptHistory = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/transcripts');
+        if (response.ok) {
+          const data = await response.json();
+          setTranscriptHistory(data.transcripts || []);
+          console.log(`📋 Loaded ${data.transcripts?.length || 0} transcripts from backend`);
+        }
+      } catch (error) {
+        console.error('Error loading transcript history:', error);
+      }
+    };
+    
+    loadTranscriptHistory();
+  }, []);
 
   // 🔥 2. New: Wrap navigate as return function
   const handleReturnToInterview = () => {
@@ -136,9 +149,6 @@ function App() {
         setStatus('Startup command sent...');
         setIsRunning(true);
         setTranscript([]); // Clear frontend display on startup
-        // Create new transcript record
-        const newId = Date.now().toString();
-        setCurrentTranscriptId(newId);
       } else {
         setStatus('Startup request failed');
       }
@@ -155,19 +165,16 @@ function App() {
       if (res.ok) {
         setStatus('Backend listening stopped');
         setIsRunning(false);
-        // Save transcript to history
-        if (transcript && transcript.length > 0 && currentTranscriptId) {
-          const newRecord = {
-            id: currentTranscriptId,
-            timestamp: new Date().toISOString(),
-            transcript: transcript,
-            name: `Transcript ${new Date().toLocaleString()}`
-          };
-          const updated = [...transcriptHistory, newRecord];
-          setTranscriptHistory(updated);
-          localStorage.setItem('recallai_transcriptHistory', JSON.stringify(updated));
+        // Reload transcript history from backend after stopping
+        try {
+          const response = await fetch('http://127.0.0.1:8000/api/transcripts');
+          if (response.ok) {
+            const data = await response.json();
+            setTranscriptHistory(data.transcripts || []);
+          }
+        } catch (error) {
+          console.error('Error reloading transcript history:', error);
         }
-        setCurrentTranscriptId(null);
       } else {
         setStatus('Stop request failed');
       }
@@ -356,10 +363,7 @@ function App() {
         <TranscriptHistoryPage 
           handleReturnToInterview={handleReturnToInterview}
           transcriptHistory={transcriptHistory}
-          onUpdateTranscriptHistory={(updated) => {
-            setTranscriptHistory(updated);
-            localStorage.setItem('recallai_transcriptHistory', JSON.stringify(updated));
-          }}
+          onUpdateTranscriptHistory={setTranscriptHistory}
         />
       } />
     </Routes>

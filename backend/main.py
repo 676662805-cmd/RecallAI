@@ -176,10 +176,13 @@ def read_root(): return {"status": "ready"}
 def start_interview():
     if state.is_running: return {"msg": "Running"}
     
-    # ✨ 重置状态
+    # ✨ 重置状态 - 确保清空所有旧数据
     state.is_running = True
-    state.transcript_log = [] 
+    state.transcript_log = []  # 清空 transcript 记录
     state.sentence_buffer = ""
+    state.latest_text = ""
+    state.latest_card = None
+    state.card_history = []
     state.start_time = time.time()
     
     t = threading.Thread(target=background_listener)
@@ -191,8 +194,15 @@ def start_interview():
 def stop_interview():
     state.is_running = False
     
-    # ✨ 停止时保存文件
-    save_transcript_to_file()
+    # ✨ 停止时保存文件（只有当有记录时才保存）
+    if state.transcript_log:
+        save_transcript_to_file()
+        print(f"📝 Saved {len(state.transcript_log)} transcript entries")
+    else:
+        print("⚠️ No transcript to save (empty)")
+    
+    # ✨ 保存后立即清空，防止重复保存
+    state.transcript_log = []
     
     return {"msg": "Stopped"}
 
@@ -261,3 +271,41 @@ def save_cards(cards_data: dict):
     except Exception as e:
         print(f"❌ Error saving cards: {e}")
         return {"success": False, "error": str(e)}
+
+@app.get("/api/transcripts")
+def get_transcripts():
+    """获取所有保存的 transcript 文件列表"""
+    transcripts_dir = "data/transcripts"
+    
+    if not os.path.exists(transcripts_dir):
+        return {"transcripts": []}
+    
+    try:
+        transcript_list = []
+        files = sorted(os.listdir(transcripts_dir), reverse=True)  # 最新的在前
+        
+        for filename in files:
+            if filename.endswith('.json'):
+                filepath = os.path.join(transcripts_dir, filename)
+                try:
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        transcript_data = json.load(f)
+                    
+                    # 从文件名提取时间戳：transcript_2025-11-23_20-32-58.json
+                    timestamp_str = filename.replace('transcript_', '').replace('.json', '')
+                    
+                    transcript_list.append({
+                        "id": filename.replace('.json', ''),  # 使用文件名作为ID
+                        "name": f"Transcript {timestamp_str.replace('_', ' ').replace('-', ':')}",
+                        "timestamp": timestamp_str,
+                        "transcript": transcript_data
+                    })
+                except Exception as e:
+                    print(f"Error reading {filename}: {e}")
+                    continue
+        
+        print(f"📋 Found {len(transcript_list)} transcripts")
+        return {"transcripts": transcript_list}
+    except Exception as e:
+        print(f"❌ Error listing transcripts: {e}")
+        return {"transcripts": []}
