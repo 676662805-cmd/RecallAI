@@ -3,12 +3,12 @@ import CardEditorModal from '../components/CardEditorModal';
 import useSystemTheme from '../hooks/useSystemTheme';
 import NewCategoryModal from '../components/NewCategoryModal';
 
-// --- 数据定义 (必须在函数外部，避免重复创建) ---
+// --- Data definitions (must be outside functions to avoid recreation) ---
 const initialCategories = [];
 
 const initialMockCards = [];
 
-// 外部组件定义 1: Sidebar
+// External component 1: Sidebar
 const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNewCategoryModalOpen, handleReturnClick, onDeleteCategory, onRenameCategory }) => {
     const [menuOpen, setMenuOpen] = useState(null);
 
@@ -22,7 +22,7 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
     };
 
     const handleRename = (catId, currentName) => {
-        const newName = window.prompt('请输入新的分类名称:', currentName);
+        const newName = window.prompt('Enter new category name:', currentName);
         if (newName && newName.trim() && newName.trim() !== currentName) {
             onRenameCategory(catId, newName.trim());
         }
@@ -30,7 +30,7 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
     };
 
     const handleDelete = (catId) => {
-        if (window.confirm('确定要删除这个分类吗？分类下的所有卡片也会被删除。')) {
+        if (window.confirm('Are you sure you want to delete this category? All cards in this category will also be deleted.')) {
             onDeleteCategory(catId);
             setMenuOpen(null);
         }
@@ -39,20 +39,23 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
     return (
         <div style={{
             width: '280px',
+            minWidth: '280px',
+            maxWidth: '280px',
             background: theme.cardBg, 
             borderRight: theme.isDark ? '1px solid #444' : '1px solid #ddd', 
             height: '100vh',
             display: 'flex', 
             flexDirection: 'column',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxSizing: 'border-box'
         }}>
-            {/* 顶部：标题和创建分类按钮 - 固定不滚动 */}
+            {/* Top: Title and create category button - fixed no scroll */}
             <div style={{ 
                 padding: '20px 20px 0 20px',
                 flexShrink: 0
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: '600', color: theme.textColor, margin: 0 }}>📚 分类</h2>
+                    <h2 style={{ fontSize: '20px', fontWeight: '600', color: theme.textColor, margin: 0 }}>Categories</h2>
                     <button
                         onClick={() => setIsNewCategoryModalOpen(true)} 
                         style={{
@@ -65,33 +68,97 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                 </div>
             </div>
             
-            {/* 中间：分类列表 - 可滚动区域 */}
+            {/* Middle: Category list - scrollable area */}
             <div style={{ 
                 flexGrow: 1, 
                 overflowY: 'auto',
-                padding: '0 20px'
+                overflowX: 'hidden',
+                padding: '0 20px',
+                boxSizing: 'border-box'
             }}>
+                {/* Fixed Favorites category - always at top, cannot be deleted */}
+                <div 
+                    key="favorites"
+                    style={{ 
+                        position: 'relative',
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        marginBottom: '15px'
+                    }}
+                >
+                    <div
+                        onClick={() => setActiveCategory('_favorites')}
+                        style={{
+                            padding: '10px 15px', 
+                            margin: '5px 0', 
+                            borderRadius: '8px', 
+                            cursor: 'pointer', 
+                            fontSize: '15px',
+                            color: activeCategory === '_favorites' ? '#fff' : theme.textColor,
+                            backgroundColor: activeCategory === '_favorites' ? theme.accentColor : 'transparent',
+                            fontWeight: activeCategory === '_favorites' ? '600' : '400',
+                            transition: 'background-color 0.2s',
+                            textAlign: 'left',
+                            userSelect: 'none',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = activeCategory === '_favorites' ? theme.accentColor : (theme.isDark ? '#333' : '#f0f0f5')}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = activeCategory === '_favorites' ? theme.accentColor : 'transparent'}
+                    >
+                        <span>Favorites</span>
+                    </div>
+                    {/* Divider line below Favorites */}
+                    <div style={{
+                        height: '1px',
+                        background: theme.isDark ? '#555' : '#e0e0e0',
+                        margin: '12px 0',
+                        width: '100%'
+                    }} />
+                </div>
+
+                {/* Regular category list */}
                 {categories.map(cat => (
                     <div 
                         key={cat.id}
-                        style={{ position: 'relative' }}
+                        style={{ 
+                            position: 'relative',
+                            width: '100%',
+                            boxSizing: 'border-box'
+                        }}
                     >
                         <div
                             onClick={() => setActiveCategory(cat.id)}
                             style={{
-                                padding: '10px 35px 10px 15px', margin: '5px 0', borderRadius: '8px', cursor: 'pointer', fontSize: '15px',
+                                padding: '10px 35px 10px 15px', 
+                                margin: '5px 0', 
+                                borderRadius: '8px', 
+                                cursor: 'pointer', 
+                                fontSize: '15px',
                                 color: cat.id === activeCategory ? '#fff' : theme.textColor,
                                 backgroundColor: cat.id === activeCategory ? theme.accentColor : 'transparent',
                                 fontWeight: cat.id === activeCategory ? '600' : '400',
                                 transition: 'background-color 0.2s',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'space-between'
+                                justifyContent: 'space-between',
+                                width: '100%',
+                                boxSizing: 'border-box',
+                                minWidth: 0
                             }}
                             onMouseEnter={e => e.currentTarget.style.backgroundColor = cat.id === activeCategory ? theme.accentColor : (theme.isDark ? '#333' : '#f0f0f5')}
                             onMouseLeave={e => e.currentTarget.style.backgroundColor = cat.id === activeCategory ? theme.accentColor : 'transparent'}
                         >
-                            <span>{cat.name}</span>
+                            <span style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                flex: 1,
+                                minWidth: 0
+                            }}>{cat.name}</span>
                             <button
                                 onClick={(e) => handleMenuClick(e, cat.id)}
                                 style={{
@@ -108,7 +175,7 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                             </button>
                         </div>
                         
-                        {/* 下拉菜单 */}
+                        {/* Dropdown menu */}
                         {menuOpen === cat.id && (
                             <div style={{
                                 position: 'absolute',
@@ -137,7 +204,7 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                                     onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    ✏️ Rename
+                                    Rename
                                 </button>
                                 <button
                                     onClick={() => handleDelete(cat.id)}
@@ -162,7 +229,7 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                 ))}
             </div>
             
-            {/* 底部：操作按钮 - 只保留返回按钮 */}
+            {/* Bottom: Action buttons - return button only */}
             <div style={{ 
                 padding: '15px 20px 20px 20px',
                 borderTop: `1px solid ${theme.isDark ? '#444' : '#f0f0f0'}`, 
@@ -177,24 +244,26 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                         cursor: 'pointer'
                     }}
                 >
-                    🎙️ 返回面试模式
+                    Back to Interview
                 </button>
             </div>
         </div>
     );
 };
 
-// 外部组件定义 2: TableView - 网格卡片布局 (Goodnotes 风格)
-const TableView = ({ theme, filteredCards, categories, activeCategory, handleEditCard, handleCreateClick, onDeleteCard }) => {
+// External component 2: TableView - grid card layout (Goodnotes style)
+const TableView = ({ theme, filteredCards, categories, activeCategory, handleEditCard, handleCreateClick, onDeleteCard, onToggleFavorite }) => {
     
-    // 🔥 计算当前分类的名称
-    const activeCategoryName = activeCategory 
-        ? categories.find(cat => cat.id === activeCategory)?.name || '未知分类'
+    // 🔥 Calculate current category name
+    const activeCategoryName = activeCategory === '_favorites'
+        ? 'Favorites'
+        : activeCategory 
+        ? categories.find(cat => cat.id === activeCategory)?.name || 'Unknown Category'
         : '';
 
     const handleDelete = (e, cardId) => {
         e.stopPropagation();
-        if (window.confirm('确定要删除这张卡片吗？')) {
+        if (window.confirm('Are you sure you want to delete this card?')) {
             onDeleteCard(cardId);
         }
     };
@@ -209,11 +278,11 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                 height: '100vh'
             }}
         > 
-            {/* 标题栏 */}
+            {/* Title bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                 <h1 style={{ fontSize: '28px', fontWeight: '700', color: theme.textColor, margin: 0 }}>
                     {!activeCategory 
-                        ? '🎉 欢迎开始您的知识库之旅' 
+                        ? 'Welcome to Your Knowledge Base' 
                         : activeCategoryName
                     }
                 </h1>
@@ -237,12 +306,12 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                         onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
                         onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                     >
-                        + 新建知识卡片
+                        + New Card
                     </button>
                 )}
             </div>
         
-            {/* 网格卡片布局 */}
+            {/* Grid card layout */}
             {filteredCards.length > 0 ? (
                 <div style={{ 
                     display: 'grid',
@@ -283,7 +352,7 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                                     : '0 2px 8px rgba(0,0,0,0.08)';
                             }}
                         >
-                            {/* 卡片标题 */}
+                            {/* Card title */}
                             <h3 style={{
                                 fontSize: '16px',
                                 fontWeight: '700',
@@ -296,7 +365,7 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                                 {card.topic}
                             </h3>
 
-                            {/* 卡片内容摘要 */}
+                            {/* Card content summary */}
                             <p style={{
                                 fontSize: '13px',
                                 color: theme.isDark ? '#aaa' : '#666',
@@ -312,7 +381,7 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                                 {card.components && card.components[0]}
                             </p>
 
-                            {/* 星标和删除按钮 */}
+                            {/* Star and delete buttons */}
                             <div style={{
                                 display: 'flex',
                                 justifyContent: 'space-between',
@@ -322,19 +391,24 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                                 borderTop: theme.isDark ? '1px solid #444' : '1px solid #f0f0f0'
                             }}>
                                 <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleFavorite(card.id);
+                                    }}
                                     style={{
                                         background: 'transparent',
                                         border: 'none',
                                         fontSize: '16px',
                                         cursor: 'pointer',
                                         padding: '4px',
-                                        transition: 'transform 0.2s'
+                                        transition: 'transform 0.2s, color 0.2s',
+                                        color: card.isFavorite ? '#FFD700' : 'inherit'
                                     }}
                                     onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
                                     onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                                    title="收藏"
+                                    title={card.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                                 >
-                                    ☆
+                                    {card.isFavorite ? '★' : '☆'}
                                 </button>
                                 
                                 <button
@@ -353,7 +427,7 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                                     }}
                                     onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.2)'}
                                     onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-                                    title="删除卡片"
+                                    title="Delete card"
                                 >
                                     🗑️
                                 </button>
@@ -363,18 +437,18 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                 </div>
             ) : (
                 <p style={{color: '#888', marginTop: '30px', fontSize: '15px'}}>
-                    {activeCategory ? '当前分类下没有卡片。' : '请选择一个分类以查看卡片。'}
+                    {activeCategory ? 'No cards in this category.' : 'Select a category to view cards.'}
                 </p>
             )}
         </div>
     );
 };
 
-// 主组件
+// Main component
 function KnowledgeBasePage({ handleReturnToInterview }) {
     const theme = useSystemTheme();
     
-    // 🔥 从 localStorage 读取数据，如果没有则使用初始值
+    // 🔥 Read data from localStorage, use initial values if not available
     const [categories, setCategories] = useState(() => {
         const saved = localStorage.getItem('knowledgebase_categories');
         return saved ? JSON.parse(saved) : initialCategories;
@@ -395,41 +469,43 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
     const [creationKey, setCreationKey] = useState(0);
     
-    // 🔥 监听 categories 变化，自动保存到 localStorage
+    // 🔥 Listen to categories changes, auto save to localStorage
     useEffect(() => {
         localStorage.setItem('knowledgebase_categories', JSON.stringify(categories));
     }, [categories]);
     
-    // 🔥 监听 cards 变化，自动保存到 localStorage
+    // 🔥 Listen to cards changes, auto save to localStorage
     useEffect(() => {
         localStorage.setItem('knowledgebase_cards', JSON.stringify(cards));
     }, [cards]);
     
-    // 🔥 监听 activeCategory 变化，自动保存到 localStorage
+    // 🔥 Listen to activeCategory changes, auto save to localStorage
     useEffect(() => {
         if (activeCategory) {
             localStorage.setItem('knowledgebase_activeCategory', activeCategory);
         }
     }, [activeCategory]);
 
-    const filteredCards = activeCategory
+    const filteredCards = activeCategory === '_favorites'
+        ? cards.filter(card => card.isFavorite === true)
+        : activeCategory
         ? cards.filter(card => card.category === activeCategory)
         : [];
 
     const handleSaveCard = (newCard) => {
         if (editingCard) {
-            // 编辑模式：替换旧卡片
+            // Edit mode: replace old card
             setCards(prevCards => prevCards.map(card => 
                 card.id === newCard.id ? newCard : card
             ));
-            setEditingCard(null); // 清除编辑状态
+            setEditingCard(null); // Clear edit state
         } else {
-            // 创建模式：添加新卡片
+            // Create mode: add new card
             setCards(prevCards => [newCard, ...prevCards]);
         }
         
-        // ⚠️ 关键：这里只关闭模态框。
-        // 绝对不要在这里添加 setActiveCategory('all') 或任何其他会修改 activeCategory 的代码。
+        // ⚠️ Important: Only close the modal here.
+        // Never add setActiveCategory('all') or other activeCategory modifications.
         setIsModalOpen(false); 
     };
     
@@ -441,7 +517,7 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
             setCategories([...categories, newCat]);
             setActiveCategory(newId);
         } else {
-            alert(`分类 "${name}" 已存在！`);
+            alert(`Category "${name}" already exists!`);
         }
         setIsNewCategoryModalOpen(false);
     };
@@ -449,7 +525,7 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     const handleCreateClick = () => {
         setEditingCard(null); 
         setIsModalOpen(true);
-        setCreationKey(prev => prev + 1); // 🔥 关键修复：每次新建时强制更新 key
+        setCreationKey(prev => prev + 1); // 🔥 Key fix: Force key update on each create
     };
 
     const handleEditCard = (card) => {
@@ -461,12 +537,22 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
         setCards(prevCards => prevCards.filter(card => card.id !== cardId));
     };
 
+    const handleToggleFavorite = (cardId) => {
+        setCards(prevCards =>
+            prevCards.map(card =>
+                card.id === cardId 
+                    ? { ...card, isFavorite: !card.isFavorite }
+                    : card
+            )
+        );
+    };
+
     const handleDeleteCategory = (catId) => {
-        // 删除分类
+        // Delete category
         setCategories(prevCategories => prevCategories.filter(cat => cat.id !== catId));
-        // 删除该分类下的所有卡片
+        // Delete all cards in this category
         setCards(prevCards => prevCards.filter(card => card.category !== catId));
-        // 如果删除的是当前选中的分类，清空选中状态
+        // Clear selection if deleting currently selected category
         if (activeCategory === catId) {
             setActiveCategory(null);
         }
@@ -475,27 +561,27 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     const handleRenameCategory = (catId, newName) => {
         const newId = newName.toLowerCase().replace(/\s/g, '_');
         
-        // 检查新名称是否已存在
+        // Check if new name already exists
         if (newId !== catId && categories.find(c => c.id === newId)) {
-            alert(`分类 "${newName}" 已存在！`);
+            alert(`Category "${newName}" already exists!`);
             return;
         }
         
-        // 更新分类名称和ID
+        // Update category name and ID
         setCategories(prevCategories => 
             prevCategories.map(cat => 
                 cat.id === catId ? { id: newId, name: newName } : cat
             )
         );
         
-        // 更新该分类下所有卡片的 category 字段
+        // Update category field for all cards in this category
         setCards(prevCards => 
             prevCards.map(card => 
                 card.category === catId ? { ...card, category: newId } : card
             )
         );
         
-        // 如果重命名的是当前选中的分类，更新 activeCategory
+        // Update activeCategory if renaming selected category
         if (activeCategory === catId) {
             setActiveCategory(newId);
         }
@@ -504,9 +590,9 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     return (
         <div style={{ 
             display: 'flex', 
-            height: '100vh', // 🔥 修改点3：父容器固定高度
+            height: '100vh', // 🔥 Point 3: Fixed height for parent
             background: theme.bgColor,
-            overflow: 'hidden' // 🔥 修改点4：防止父容器滚动
+            overflow: 'hidden' // 🔥 Point 4: Prevent parent scrolling
         }}> 
             <Sidebar 
                 theme={theme}
@@ -527,13 +613,14 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
                 handleEditCard={handleEditCard}
                 handleCreateClick={handleCreateClick}
                 onDeleteCard={handleDeleteCard}
+                onToggleFavorite={handleToggleFavorite}
             />
             
             <CardEditorModal 
                 theme={theme}
                 key={editingCard ? editingCard.id : creationKey}
                 cardData={editingCard}
-                // 🔥 关键修正：传递当前选中的分类作为固定值
+                // 🔥 Key fix: Pass currently selected category as fixed value
                 fixedCategory={activeCategory} 
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
