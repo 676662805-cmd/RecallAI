@@ -2,12 +2,38 @@ import threading
 import time
 import json
 import os
+import sys
+import shutil
 from datetime import datetime
 from difflib import SequenceMatcher
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from services.audio import AudioService
 from services.matcher import MatchService
+
+# --- Configuration ---
+# Default to 'data' in current directory, but allow override via command line arg
+DATA_DIR = "data"
+if len(sys.argv) > 1:
+    DATA_DIR = sys.argv[1]
+
+# Ensure data directory exists
+os.makedirs(DATA_DIR, exist_ok=True)
+TRANSCRIPTS_DIR = os.path.join(DATA_DIR, "transcripts")
+os.makedirs(TRANSCRIPTS_DIR, exist_ok=True)
+CARDS_FILE = os.path.join(DATA_DIR, "cards.json")
+
+# If cards.json doesn't exist in DATA_DIR, try to copy from default location (relative to executable)
+if not os.path.exists(CARDS_FILE):
+    # Look for default data in the same directory as the executable/script
+    base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
+    default_cards = os.path.join(base_dir, "data", "cards.json")
+    if os.path.exists(default_cards):
+        try:
+            shutil.copy2(default_cards, CARDS_FILE)
+            print(f"📋 Copied default cards from {default_cards} to {CARDS_FILE}")
+        except Exception as e:
+            print(f"⚠️ Failed to copy default cards: {e}")
 
 app = FastAPI()
 
@@ -20,7 +46,7 @@ app.add_middleware(
 )
 
 audio_service = AudioService()
-match_service = MatchService()
+match_service = MatchService(cards_file_path=CARDS_FILE)
 
 class GlobalState:
     is_running = False
@@ -48,12 +74,9 @@ def save_transcript_to_file():
     if not state.transcript_log:
         return
     
-    # 创建存放目录
-    os.makedirs("data/transcripts", exist_ok=True)
-    
     # 文件名：transcript_2023-10-27_10-30.json
     filename = f"transcript_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
-    filepath = os.path.join("data", "transcripts", filename)
+    filepath = os.path.join(TRANSCRIPTS_DIR, filename)
     
     try:
         with open(filepath, "w", encoding="utf-8") as f:
@@ -201,8 +224,11 @@ def stop_interview():
     else:
         print("⚠️ No transcript to save (empty)")
     
-    # ✨ 保存后立即清空，防止重复保存
+    # ✨ 保存后立即清空，防止重复保存和显示旧卡片
     state.transcript_log = []
+    state.latest_card = None
+    state.latest_text = ""
+    state.sentence_buffer = ""
     
     return {"msg": "Stopped"}
 
@@ -211,7 +237,8 @@ def get_latest_result():
     return {
         "is_running": state.is_running,
         "text": state.latest_text,
-        "card": state.latest_card,
+        # 只有在运行时才返回卡片，避免启动时显示旧卡片
+        "card": state.latest_card if state.is_running else None,
         # ✨ 返回 transcript 给前端展示
         "transcript": state.transcript_log 
     }
@@ -231,10 +258,9 @@ def rewind_card():
 @app.get("/api/cards")
 def get_cards():
     """获取所有 cards"""
-    cards_file = "data/cards.json"
-    if os.path.exists(cards_file):
+    if os.path.exists(CARDS_FILE):
         try:
-            with open(cards_file, 'r', encoding='utf-8') as f:
+            with open(CARDS_FILE, 'r', encoding='utf-8') as f:
                 cards = json.load(f)
             return {"cards": cards}
         except Exception as e:
@@ -245,8 +271,6 @@ def get_cards():
 @app.post("/api/cards")
 def save_cards(cards_data: dict):
     """保存 cards 到后端（从前端同步）"""
-    cards_file = "data/cards.json"
-    os.makedirs("data", exist_ok=True)
     
     try:
         cards = cards_data.get("cards", [])
@@ -260,7 +284,7 @@ def save_cards(cards_data: dict):
             }
             backend_cards.append(backend_card)
         
-        with open(cards_file, 'w', encoding='utf-8') as f:
+        with open(CARDS_FILE, 'w', encoding='utf-8') as f:
             json.dump(backend_cards, f, indent=2, ensure_ascii=False)
         
         # 重新加载 matcher service 的 cards
@@ -275,18 +299,17 @@ def save_cards(cards_data: dict):
 @app.get("/api/transcripts")
 def get_transcripts():
     """获取所有保存的 transcript 文件列表"""
-    transcripts_dir = "data/transcripts"
     
-    if not os.path.exists(transcripts_dir):
+    if not os.path.exists(TRANSCRIPTS_DIR):
         return {"transcripts": []}
     
     try:
         transcript_list = []
-        files = sorted(os.listdir(transcripts_dir), reverse=True)  # 最新的在前
+        files = sorted(os.listdir(TRANSCRIPTS_DIR), reverse=True)  # 最新的在前
         
         for filename in files:
             if filename.endswith('.json'):
-                filepath = os.path.join(transcripts_dir, filename)
+                filepath = os.path.join(TRANSCRIPTS_DIR, filename)
                 try:
                     with open(filepath, 'r', encoding='utf-8') as f:
                         transcript_data = json.load(f)
@@ -327,3 +350,8 @@ def get_transcripts():
     except Exception as e:
         print(f"❌ Error listing transcripts: {e}")
         return {"transcripts": []}
+
+if __name__ == "__main__":
+    import uvicorn
+    # Use port 8000 as expected by frontend
+    uvicorn.run(app, host="127.0.0.1", port=8000)

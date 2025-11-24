@@ -6,7 +6,12 @@ from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    print("⚠️ GROQ_API_KEY not set in environment. AI features will be disabled.")
+    client = None
+else:
+    client = Groq(api_key=api_key)
 
 class AudioService:
     def __init__(self):
@@ -64,6 +69,10 @@ class AudioService:
             audio_file.name = "audio.wav" 
 
             # 使用 Turbo 模型 + 强制英文
+            if client is None:
+                print("⚠️ Groq client not available, cannot transcribe")
+                return None
+                
             transcript = client.audio.transcriptions.create(
                 model="whisper-large-v3-turbo", 
                 file=audio_file,

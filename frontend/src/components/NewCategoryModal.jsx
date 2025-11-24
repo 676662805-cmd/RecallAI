@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // 🔥 Note: All external style definitions removed, now defined inside component
 
 // CardEditorModal Component (用于创建和编辑卡片的模态框)
 const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 接收 theme prop
     const [name, setName] = useState('');
+
+    // Reset input when modal opens/closes
+    useEffect(() => {
+        if (!isOpen) {
+            setName(''); // Clear input when modal closes
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -14,6 +21,11 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
             onCreate(name.trim());
             setName(''); // Reset input field
         }
+    };
+
+    const handleCancel = () => {
+        setName(''); // Clear input field when canceling
+        onClose();
     };
 
     // --- 2. 样式定义 (已替换为动态主题变量，并移到内部) ---
@@ -67,7 +79,7 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
                         autoFocus 
                     />
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                        <button type="button" onClick={onClose} style={buttonStyle('cancel')}>Cancel</button>
+                        <button type="button" onClick={handleCancel} style={buttonStyle('cancel')}>Cancel</button>
                         <button type="submit" style={buttonStyle('submit')}>Create</button>
                     </div>
                 </form>

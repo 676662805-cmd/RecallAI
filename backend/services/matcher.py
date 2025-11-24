@@ -7,16 +7,35 @@ from dotenv import load_dotenv
 # Load env vars
 load_dotenv()
 # 使用 Groq 客户端
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key:
+    print("⚠️ GROQ_API_KEY not set. AI matching will be disabled.")
+    client = None
+else:
+    client = Groq(api_key=api_key)
 
 class MatchService:
-    def __init__(self):
+    def __init__(self, cards_file_path=None):
+        self.cards_file_path = cards_file_path
         self.cards = self._load_cards()
 
     def _load_cards(self):
         try:
-            current_dir = os.path.dirname(__file__)
-            file_path = os.path.join(current_dir, "..", "data", "cards.json")
+            if self.cards_file_path and os.path.exists(self.cards_file_path):
+                file_path = self.cards_file_path
+            else:
+                # PyInstaller compatibility: use sys._MEIPASS for bundled resources
+                import sys
+                if getattr(sys, 'frozen', False):
+                    # Running in PyInstaller bundle
+                    base_path = sys._MEIPASS
+                else:
+                    # Running in normal Python
+                    base_path = os.path.dirname(__file__)
+                
+                file_path = os.path.join(base_path, "data", "cards.json")
+            
+            print(f"📂 Loading cards from: {file_path}")
             with open(file_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
@@ -74,6 +93,10 @@ class MatchService:
 
         # --- 3. 补全：调用 API 发送请求 ---
         try:
+            if client is None:
+                print("⚠️ Groq client not available, cannot match cards with AI")
+                return None
+                
             response = client.chat.completions.create(
                 model="llama-3.1-8b-instant",
                 messages=[
@@ -109,6 +132,10 @@ class MatchService:
     def generate_ai_answer(self, user_query: str):
         """AI 现场生成逻辑"""
         print(f"🤖 AI generating for: {user_query}")
+        
+        if client is None:
+            print("⚠️ Groq client not available, cannot generate AI answers")
+            return None
         
         system_prompt = """
         You are an Interview Coach.

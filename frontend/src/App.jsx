@@ -65,12 +65,20 @@ function App() {
     else if (page === 'transcriptHistory') navigate('/transcripts');
   };
 
-  // ✨ Auto-scroll logic: Only scroll if user hasn't manually scrolled and there's new content
+  // ✨ Auto-scroll logic: Only scroll if content overflows and user hasn't manually scrolled
   useEffect(() => {
     if (currentPage === 'interview' && transcriptContainerRef.current) {
-      // Only auto-scroll if there's new content and user hasn't manually scrolled
+      const container = transcriptContainerRef.current;
+      
+      // Check if there's new content and container has scrollable content
       if (transcript.length > prevTranscriptLength.current && !userHasScrolled) {
-        transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        // Only scroll if content actually overflows the container AND user is near bottom
+        const isContentOverflowing = container.scrollHeight > container.clientHeight;
+        const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
+        
+        if (isContentOverflowing && isNearBottom) {
+          transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
       }
       prevTranscriptLength.current = transcript.length;
     }
@@ -111,22 +119,31 @@ function App() {
         if (card) {
           if (activeCard?.id !== card.id) {
             console.log("Found new card!", card);
-            setShowCard(false);
-            setTimeout(() => {
-              // Transform backend card shape to the UI shape expected by InterviewCard
-              const uiCard = {
-                id: card.id,
-                title: card.topic || card.title || "",
-                // InterviewCard expects content as an array of lines
-                content: Array.isArray(card.content)
-                  ? card.content
-                  : (typeof card.content === 'string' ? card.content.split('\n') : []),
-                tags: Array.isArray(card.tags) ? card.tags : (card.tags ? [card.tags] : [])
-              };
+            
+            // Transform backend card shape to the UI shape expected by InterviewCard
+            const uiCard = {
+              id: card.id,
+              title: card.topic || card.title || "",
+              // InterviewCard expects content as an array of lines
+              content: Array.isArray(card.content)
+                ? card.content
+                : (typeof card.content === 'string' ? card.content.split('\n') : []),
+              tags: Array.isArray(card.tags) ? card.tags : (card.tags ? [card.tags] : [])
+            };
 
-              setActiveCard(uiCard);
-              setShowCard(true);
-            }, 50);
+            // 如果在Electron环境中，显示幽灵弹窗
+            if (window.electronAPI) {
+              window.electronAPI.showPopup(uiCard);
+            } else {
+              // 网页环境中的传统卡片显示
+              setShowCard(false);
+              setTimeout(() => {
+                setActiveCard(uiCard);
+                setShowCard(true);
+              }, 50);
+            }
+            
+            setActiveCard(uiCard);
           }
         } else {
           // No matching card found: don't auto-hide, stay as is
