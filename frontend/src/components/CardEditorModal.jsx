@@ -68,7 +68,7 @@ const CardEditorModal = ({ theme, cardData, isOpen, onClose, onSave, fixedCatego
         fontSize: '15px', boxSizing: 'border-box', 
         backgroundColor: theme.inputBg, // 🔥 Dynamic input background
         color: theme.inputTextColor, // 🔥 Dynamic input text color
-        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Text", Arial, sans-serif'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
     };
     
     const labelStyle = { display: 'block', fontSize: '14px', fontWeight: '600', color: theme.textColor, marginBottom: '8px' }; // 🔥 Dynamic label text

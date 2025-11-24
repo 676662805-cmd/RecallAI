@@ -30,7 +30,8 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
     };
     const titleStyle = { 
         fontSize: '20px', fontWeight: '600', marginBottom: '20px', 
-        color: theme.textColor // 🔥 Dynamic text color
+        color: theme.textColor, // 🔥 Dynamic text color
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
     };
     const inputStyle = { 
         width: '100%', padding: '10px 12px', borderRadius: '8px', 
@@ -38,6 +39,7 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
         fontSize: '15px', boxSizing: 'border-box', marginBottom: '15px',
         backgroundColor: theme.inputBg, // 🔥 Dynamic input background
         color: theme.inputTextColor, // 🔥 Dynamic input text color
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
     };
     
     // Dynamic button style function
@@ -45,6 +47,7 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
         padding: '10px 15px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600',
         background: type === 'submit' ? theme.accentColor : (theme.isDark ? '#555' : '#e0e0e0'),
         color: type === 'submit' ? 'white' : theme.inputTextColor,
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
     });
 
 

@@ -69,12 +69,13 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                 flexShrink: 0
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: '600', color: theme.textColor, margin: 0 }}>Categories</h2>
+                    <h2 style={{ fontSize: '20px', fontWeight: '600', color: theme.textColor, margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>Categories</h2>
                     <button
                         onClick={() => setIsNewCategoryModalOpen(true)} 
                         style={{
                             padding: '5px 10px', borderRadius: '6px', background: theme.accentColor, 
-                            color: 'white', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '18px', lineHeight: '18px'
+                            color: 'white', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '18px', lineHeight: '18px',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                         }}
                     >
                         +
@@ -123,7 +124,7 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                         onMouseEnter={e => e.currentTarget.style.backgroundColor = activeCategory === '_favorites' ? theme.accentColor : (theme.isDark ? '#333' : '#f0f0f5')}
                         onMouseLeave={e => e.currentTarget.style.backgroundColor = activeCategory === '_favorites' ? theme.accentColor : 'transparent'}
                     >
-                        <span>Favorites</span>
+                        <span style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>Favorites</span>
                     </div>
                     {/* Divider line below Favorites */}
                     <div style={{
@@ -306,7 +307,7 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
         > 
             {/* Title bar */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h1 style={{ fontSize: '28px', fontWeight: '700', color: theme.textColor, margin: 0 }}>
+                <h1 style={{ fontSize: '28px', fontWeight: '700', color: theme.textColor, margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>
                     {!activeCategory 
                         ? 'Welcome to Your Knowledge Base' 
                         : activeCategoryName
@@ -327,7 +328,8 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                             background: '#34c759', 
                             color: 'white', 
                             cursor: 'pointer',
-                            transition: 'all 0.2s'
+                            transition: 'all 0.2s',
+                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                         }}
                         onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
                         onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
@@ -386,7 +388,8 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                                 margin: '0 0 12px 0',
                                 overflow: 'hidden',
                                 textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap'
+                                whiteSpace: 'nowrap',
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                             }}>
                                 {card.topic}
                             </h3>
@@ -402,7 +405,8 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                                 display: '-webkit-box',
                                 WebkitLineClamp: 4,
                                 WebkitBoxOrient: 'vertical',
-                                flexGrow: 1
+                                flexGrow: 1,
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                             }}>
                                 {card.components && card.components[0]}
                             </p>
@@ -462,7 +466,7 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                     ))}
                 </div>
             ) : (
-                <p style={{color: '#888', marginTop: '30px', fontSize: '15px'}}>
+                <p style={{color: '#888', marginTop: '30px', fontSize: '15px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'}}>
                     {activeCategory ? 'No cards in this category.' : 'Select a category to view cards.'}
                 </p>
             )}

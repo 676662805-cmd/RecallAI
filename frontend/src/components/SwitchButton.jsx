@@ -22,7 +22,8 @@ const SwitchButton = ({ currentPage, setCurrentPage }) => (
                     color: '#1d1d1f',
                     fontWeight: '600',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                 }}
             >
                 {currentPage === 'interview' ? 'Your Cards' : 'Back to Interview'}
@@ -39,7 +40,8 @@ const SwitchButton = ({ currentPage, setCurrentPage }) => (
                     color: '#1d1d1f',
                     fontWeight: '600',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                 }}
             >
                 History Transcript

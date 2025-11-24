@@ -4,10 +4,12 @@ import InterviewCard from './components/InterviewCard'
 import KnowledgeBasePage from './pages/KnowledgeBasePage'
 import TranscriptHistoryPage from './pages/TranscriptHistoryPage'
 import SwitchButton from './components/SwitchButton';
+import useSystemTheme from './hooks/useSystemTheme';
 
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const theme = useSystemTheme();
   
   // Determine current page from URL
   const currentPage = location.pathname === '/knowledge' ? 'knowledge' 
@@ -198,7 +200,7 @@ function App() {
   const renderInterviewPage = () => (
     <div style={{ 
       padding: '20px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
       maxWidth: '800px',
       margin: '0 auto'
     }}>
@@ -245,7 +247,8 @@ function App() {
             color: isRunning ? '#999' : 'white',
             fontWeight: '500',
             cursor: isRunning ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
           }}
         >
           Start
@@ -263,7 +266,8 @@ function App() {
             color: !isRunning ? '#999' : 'white',
             fontWeight: '500',
             cursor: !isRunning ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
           }}
         >
           Stop
@@ -272,35 +276,34 @@ function App() {
 
       {/* ✨ Transcript area (dark background, simulates terminal/subtitle effect) */}
       <div style={{
-        background: '#1c1c1e', 
+        background: theme.isDark ? '#1c1c1e' : '#f5f5f7', 
         borderRadius: '12px',
         padding: '18px',
         height: '600px',       // Fixed height, scroll beyond
         overflowY: 'auto',     
-        color: '#e0e0e0',
+        color: theme.isDark ? '#e0e0e0' : '#1d1d1f',
         fontSize: '15px',
         lineHeight: '1.5',
-        boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.3)',
+        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
         marginBottom: '20px',
-        border: '1px solid #333'
+        border: theme.isDark ? '1px solid #333' : '1px solid #d1d1d6'
       }}>
         {transcript.length === 0 ? (
-          <div style={{ color: '#555', textAlign: 'center', marginTop: '80px' }}>
+          <div style={{ color: theme.isDark ? '#555' : '#86868b', textAlign: 'center', marginTop: '80px' }}>
             No conversation history yet... (Click Start to begin)
           </div>
         ) : (
           transcript.map((item, index) => (
-            <div key={index} style={{ marginBottom: '10px', display: 'flex', gap: '10px' }}>
+            <div key={index} style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
               <span style={{ 
-                color: '#666', 
+                color: theme.isDark ? '#666' : '#86868b', 
                 fontSize: '11px', 
                 minWidth: '40px',
-                fontFamily: 'monospace',
-                paddingTop: '2px'
+                fontFamily: 'monospace'
               }}>
                 {item.timestamp}
               </span>
-              <span style={{ color: '#ddd' }}>{item.text}</span>
+              <span style={{ color: theme.isDark ? '#ddd' : '#1d1d1f' }}>{item.text}</span>
             </div>
           ))
         )}
@@ -333,17 +336,16 @@ function App() {
             cursor: 'pointer',
             backdropFilter: 'blur(10px)',
             fontSize: '24px',
-            zIndex: 9999
+            zIndex: 9999,
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
           }}
         >
-          ✖️ Close Card
-        </button>
-      )}
+            Close Card
+          </button>
+        )}
 
-    </div>
-  );
-
-  // Main render with Routes
+      </div>
+    );  // Main render with Routes
   return (
     <Routes>
       <Route path="/" element={renderInterviewPage()} />

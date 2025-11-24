@@ -22,7 +22,7 @@ const InterviewCard = ({ data, isVisible }) => {
       border: '1px solid rgba(255,255,255,0.4)',
       padding: '20px',
       zIndex: 9999,
-      fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif'
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
     }}>
       {/* 标题 */}
       <h3 style={{ margin: '0 0 12px 0', fontSize: '18px', color: '#1d1d1f' }}>

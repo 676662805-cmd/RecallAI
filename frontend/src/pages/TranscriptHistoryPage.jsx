@@ -57,7 +57,7 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                 padding: '20px 20px 0 20px',
                 flexShrink: 0
             }}>
-                <h2 style={{ fontSize: '20px', fontWeight: '600', color: theme.textColor, margin: 0, marginBottom: '20px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: '600', color: theme.textColor, margin: 0, marginBottom: '20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>
                     Transcripts
                 </h2>
             </div>
@@ -70,7 +70,7 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                 boxSizing: 'border-box'
             }}>
                 {transcripts.length === 0 ? (
-                    <p style={{ color: '#888', fontSize: '14px', textAlign: 'center', marginTop: '20px' }}>
+                    <p style={{ color: '#888', fontSize: '14px', textAlign: 'center', marginTop: '20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>
                         No transcripts yet
                     </p>
                 ) : (
@@ -111,7 +111,8 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
                                     flex: 1,
-                                    minWidth: 0
+                                    minWidth: 0,
+                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                 }}>{t.name}</span>
                                 <button
                                     onClick={(e) => handleMenuClick(e, t.id)}
@@ -122,7 +123,8 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                         cursor: 'pointer',
                                         fontSize: '18px',
                                         padding: '0 5px',
-                                        lineHeight: '1'
+                                        lineHeight: '1',
+                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                     }}
                                 >
                                     ⋮
@@ -155,7 +157,8 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                             textAlign: 'left',
                                             cursor: 'pointer',
                                             fontSize: '14px',
-                                            borderBottom: theme.isDark ? '1px solid #444' : '1px solid #f0f0f0'
+                                            borderBottom: theme.isDark ? '1px solid #444' : '1px solid #f0f0f0',
+                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                         }}
                                         onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -172,7 +175,8 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                             color: theme.textColor,
                                             textAlign: 'left',
                                             cursor: 'pointer',
-                                            fontSize: '14px'
+                                            fontSize: '14px',
+                                            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                         }}
                                         onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
@@ -207,7 +211,7 @@ const TranscriptDetailView = ({ theme, transcript, onBack }) => {
                 justifyContent: 'space-between',
                 alignItems: 'center'
             }}>
-                <h1 style={{ fontSize: '24px', fontWeight: '700', color: theme.textColor, margin: 0 }}>
+                <h1 style={{ fontSize: '24px', fontWeight: '700', color: theme.textColor, margin: 0, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>
                     {transcript.name}
                 </h1>
                 <button 
@@ -219,7 +223,8 @@ const TranscriptDetailView = ({ theme, transcript, onBack }) => {
                         color: 'white', 
                         border: 'none', 
                         fontWeight: '600',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                     }}
                 >
                     ← Back
@@ -252,13 +257,13 @@ const TranscriptDetailView = ({ theme, transcript, onBack }) => {
                                 }}>
                                     {item.timestamp || ''}
                                 </span>
-                                <span style={{ color: theme.textColor, fontSize: '14px', lineHeight: '1.5' }}>
+                                <span style={{ color: theme.textColor, fontSize: '14px', lineHeight: '1.5', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>
                                     {item.text || item}
                                 </span>
                             </div>
                         ))
                     ) : (
-                        <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>
+                        <p style={{ color: '#888', textAlign: 'center', padding: '20px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>
                             No transcript data available
                         </p>
                     )}
@@ -357,10 +362,10 @@ function TranscriptHistoryPage({ handleReturnToInterview, transcriptHistory, onU
                         textAlign: 'center',
                         color: '#888'
                     }}>
-                        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '10px' }}>
+                        <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '10px', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>
                             Select a Transcript
                         </h2>
-                        <p>Click on a transcript from the list to view its details</p>
+                        <p style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>Click on a transcript from the list to view its details</p>
                     </div>
                 </div>
             )}
