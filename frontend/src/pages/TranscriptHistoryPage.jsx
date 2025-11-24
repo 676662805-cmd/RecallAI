@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import useSystemTheme from '../hooks/useSystemTheme';
 
 // Component for viewing transcript history list
-const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDeleteTranscript, onRenameTranscript }) => {
+const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDeleteTranscript, onRenameTranscript, selectedTranscriptId }) => {
     const [menuOpen, setMenuOpen] = useState(null);
 
     const handleMenuClick = (e, transcriptId) => {
@@ -81,25 +81,27 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                 position: 'relative',
                                 width: '100%',
                                 boxSizing: 'border-box',
-                                marginBottom: '8px'
+                                marginBottom: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
                             }}
                         >
                             <div
                                 onClick={() => onSelectTranscript(t.id)}
                                 style={{
-                                    padding: '10px 35px 10px 15px', 
-                                    margin: '5px 0', 
+                                    padding: '9px 15px', 
+                                    margin: '0', 
                                     borderRadius: '8px', 
                                     cursor: 'pointer', 
                                     fontSize: '14px',
-                                    color: theme.textColor,
+                                    color: selectedTranscriptId === t.id ? '#007AFF' : theme.textColor,
                                     backgroundColor: 'transparent',
                                     fontWeight: '400',
-                                    transition: 'background-color 0.2s',
+                                    transition: 'background-color 0.2s, color 0.2s',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    width: '100%',
+                                    flex: 1,
                                     boxSizing: 'border-box',
                                     minWidth: 0
                                 }}
@@ -110,26 +112,25 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
-                                    flex: 1,
-                                    minWidth: 0,
                                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                 }}>{t.name}</span>
-                                <button
-                                    onClick={(e) => handleMenuClick(e, t.id)}
-                                    style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: theme.textColor,
-                                        cursor: 'pointer',
-                                        fontSize: '18px',
-                                        padding: '0 5px',
-                                        lineHeight: '1',
-                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
-                                    }}
-                                >
-                                    ⋮
-                                </button>
                             </div>
+                            <button
+                                onClick={(e) => handleMenuClick(e, t.id)}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: theme.textColor,
+                                    cursor: 'pointer',
+                                    fontSize: '18px',
+                                    padding: '0 5px',
+                                    lineHeight: '1',
+                                    flexShrink: 0,
+                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+                                }}
+                            >
+                                ⋮
+                            </button>
                             
                             {/* Dropdown menu */}
                             {menuOpen === t.id && (
@@ -137,7 +138,7 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                     onClick={(e) => e.stopPropagation()}
                                     style={{
                                         position: 'absolute',
-                                        right: '10px',
+                                        right: '5px',
                                         top: '40px',
                                         background: theme.cardBg,
                                         border: theme.isDark ? '1px solid #444' : '1px solid #ddd',
@@ -317,6 +318,7 @@ function TranscriptHistoryPage({ handleReturnToInterview, transcriptHistory, onU
                         onSelectTranscript={setSelectedTranscriptId}
                         onDeleteTranscript={handleDeleteTranscript}
                         onRenameTranscript={handleRenameTranscript}
+                        selectedTranscriptId={selectedTranscriptId}
                     />
                 </div>
                 

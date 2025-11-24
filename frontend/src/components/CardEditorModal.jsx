@@ -130,7 +130,15 @@ const CardEditorModal = ({ theme, cardData, isOpen, onClose, onSave, fixedCatego
                             onInput={(e) => {
                                 e.target.setCustomValidity('');
                             }}
-                            style={{ ...inputStyle, resize: 'vertical', color: theme.inputTextColor }} 
+                            style={{ 
+                                ...inputStyle, 
+                                resize: 'none', 
+                                color: theme.inputTextColor,
+                                scrollbarWidth: 'thin',
+                                scrollbarColor: theme.isDark ? '#555 #2c2c2e' : '#ccc #f5f5f5',
+                                overflow: 'auto',
+                                boxSizing: 'border-box'
+                            }} 
                         />
                         <p style={{ fontSize: '12px', color: theme.isDark ? '#8e8e93' : '#8e8e93', marginTop: '5px' }}>Break content into multiple lines using line breaks.</p>
                     </div>

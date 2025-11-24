@@ -44,7 +44,7 @@ const SwitchButton = ({ currentPage, setCurrentPage }) => (
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                 }}
             >
-                History Transcript
+                Transcript History
             </button>
         )}
     </div>

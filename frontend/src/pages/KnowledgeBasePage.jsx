@@ -109,10 +109,10 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                             borderRadius: '8px', 
                             cursor: 'pointer', 
                             fontSize: '15px',
-                            color: activeCategory === '_favorites' ? '#fff' : theme.textColor,
-                            backgroundColor: activeCategory === '_favorites' ? theme.accentColor : 'transparent',
-                            fontWeight: activeCategory === '_favorites' ? '600' : '400',
-                            transition: 'background-color 0.2s',
+                            color: activeCategory === '_favorites' ? '#007AFF' : theme.textColor,
+                            backgroundColor: 'transparent',
+                            fontWeight: '400',
+                            transition: 'background-color 0.2s, color 0.2s',
                             textAlign: 'left',
                             userSelect: 'none',
                             overflow: 'hidden',
@@ -121,8 +121,8 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                             width: '100%',
                             boxSizing: 'border-box'
                         }}
-                        onMouseEnter={e => e.currentTarget.style.backgroundColor = activeCategory === '_favorites' ? theme.accentColor : (theme.isDark ? '#333' : '#f0f0f5')}
-                        onMouseLeave={e => e.currentTarget.style.backgroundColor = activeCategory === '_favorites' ? theme.accentColor : 'transparent'}
+                        onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.isDark ? '#333' : '#f0f0f5'}
+                        onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                         <span style={{ fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif' }}>Favorites</span>
                     </div>
@@ -142,113 +142,109 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                         style={{ 
                             position: 'relative',
                             width: '100%',
-                            boxSizing: 'border-box'
+                            boxSizing: 'border-box',
+                            marginBottom: '4px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
                         }}
                     >
                         <div
+                            onClick={() => setActiveCategory(cat.id)}
                             style={{
-                                padding: '10px 15px', 
-                                margin: '5px 0', 
+                                padding: '9px 15px', 
+                                margin: '0', 
                                 borderRadius: '8px', 
                                 cursor: 'pointer', 
                                 fontSize: '15px',
-                                color: cat.id === activeCategory ? '#fff' : theme.textColor,
-                                backgroundColor: cat.id === activeCategory ? theme.accentColor : 'transparent',
-                                fontWeight: cat.id === activeCategory ? '600' : '400',
-                                transition: 'background-color 0.2s',
+                                color: cat.id === activeCategory ? '#007AFF' : theme.textColor,
+                                backgroundColor: 'transparent',
+                                fontWeight: '400',
+                                transition: 'background-color 0.2s, color 0.2s',
                                 display: 'flex',
                                 alignItems: 'center',
-                                justifyContent: 'space-between',
-                                width: '100%',
+                                flex: 1,
                                 boxSizing: 'border-box',
                                 minWidth: 0
                             }}
-                            onMouseEnter={e => e.currentTarget.style.backgroundColor = cat.id === activeCategory ? theme.accentColor : (theme.isDark ? '#333' : '#f0f0f5')}
-                            onMouseLeave={e => e.currentTarget.style.backgroundColor = cat.id === activeCategory ? theme.accentColor : 'transparent'}
+                            onMouseEnter={e => e.currentTarget.style.backgroundColor = theme.isDark ? '#333' : '#f0f0f5'}
+                            onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
                         >
                             <span 
-                                onClick={() => setActiveCategory(cat.id)}
                                 style={{
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
                                     whiteSpace: 'nowrap',
-                                    flex: 1,
-                                    minWidth: 0
+                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                 }}
                             >{cat.name}</span>
-                            <button
-                                onClick={(e) => handleMenuClick(e, cat.id)}
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: cat.id === activeCategory ? '#fff' : theme.textColor,
-                                    cursor: 'pointer',
-                                    fontSize: '20px',
-                                    padding: '0 0 0 10px',
-                                    lineHeight: '1',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    flexShrink: 0,
-                                    outline: 'none'
-                                }}
-                            >
-                                ⋮
-                            </button>
                         </div>
+                        <button
+                            onClick={(e) => handleMenuClick(e, cat.id)}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: theme.textColor,
+                                cursor: 'pointer',
+                                fontSize: '18px',
+                                padding: '0 5px',
+                                lineHeight: '1',
+                                flexShrink: 0,
+                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+                            }}
+                        >
+                            ⋮
+                        </button>
                         
                         {/* Dropdown menu */}
                         {menuOpen === cat.id && (
                             <div style={{
                                 position: 'absolute',
-                                right: '15px',
-                                top: '45px',
+                                right: '5px',
+                                top: '40px',
                                 background: theme.cardBg,
-                                border: 'none',
-                                borderRadius: '12px',
-                                boxShadow: theme.isDark 
-                                    ? '0 8px 24px rgba(0,0,0,0.4)' 
-                                    : '0 8px 24px rgba(0,0,0,0.12)',
+                                border: theme.isDark ? '1px solid #444' : '1px solid #ddd',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                                 zIndex: 1000,
-                                minWidth: '160px',
-                                overflow: 'hidden'
+                                minWidth: '150px'
                             }}>
                                 <button
                                     onClick={() => handleRename(cat.id, cat.name)}
                                     style={{
                                         width: '100%',
-                                        padding: '12px 16px',
+                                        padding: '10px 15px',
                                         border: 'none',
                                         background: 'transparent',
                                         color: theme.textColor,
                                         textAlign: 'left',
                                         cursor: 'pointer',
                                         fontSize: '14px',
-                                        fontWeight: '500',
-                                        transition: 'background-color 0.15s'
+                                        borderBottom: theme.isDark ? '1px solid #444' : '1px solid #f0f0f0',
+                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                     }}
-                                    onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#3a3a3c' : '#f0f0f5'}
+                                    onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    Rename
+                                    ✏️ Rename
                                 </button>
                                 <button
                                     onClick={() => handleDelete(cat.id)}
                                     style={{
                                         width: '100%',
-                                        padding: '12px 16px',
+                                        padding: '10px 15px',
                                         border: 'none',
                                         background: 'transparent',
                                         color: theme.textColor,
                                         textAlign: 'left',
                                         cursor: 'pointer',
                                         fontSize: '14px',
-                                        fontWeight: '500',
-                                        transition: 'background-color 0.15s'
+                                        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                     }}
-                                    onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#3a3a3c' : '#f0f0f5'}
+                                    onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
                                     onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                 >
-                                    Delete
+                                    🗑️ Delete
                                 </button>
                             </div>
                         )}
@@ -382,7 +378,7 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                         >
                             {/* Card title */}
                             <h3 style={{
-                                fontSize: '16px',
+                                fontSize: '17px',
                                 fontWeight: '700',
                                 color: theme.textColor,
                                 margin: '0 0 12px 0',
@@ -395,21 +391,37 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                             </h3>
 
                             {/* Card content summary */}
-                            <p style={{
-                                fontSize: '13px',
-                                color: theme.isDark ? '#aaa' : '#666',
-                                margin: 0,
-                                lineHeight: '1.5',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 4,
-                                WebkitBoxOrient: 'vertical',
+                            <div style={{
+                                position: 'relative',
                                 flexGrow: 1,
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+                                overflow: 'hidden',
+                                maxHeight: '112px' // 5 lines * 22.4px (14px * 1.6)
                             }}>
-                                {card.components && card.components[0]}
-                            </p>
+                                <p style={{
+                                    fontSize: '14px',
+                                    color: theme.isDark ? '#aaa' : '#666',
+                                    margin: 0,
+                                    lineHeight: '1.6',
+                                    overflow: 'hidden',
+                                    wordWrap: 'break-word',
+                                    wordBreak: 'break-word',
+                                    whiteSpace: 'pre-wrap',
+                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+                                }}>
+                                    {card.components && card.components.join('\n')}
+                                </p>
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: 0,
+                                    right: 0,
+                                    width: '80px',
+                                    height: '22px',
+                                    background: theme.isDark 
+                                        ? 'linear-gradient(to right, transparent, #2c2c2e 50%)' 
+                                        : 'linear-gradient(to right, transparent, white 50%)',
+                                    pointerEvents: 'none'
+                                }} />
+                            </div>
 
                             {/* Star and delete buttons */}
                             <div style={{
