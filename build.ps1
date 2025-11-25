@@ -1,72 +1,72 @@
-# RecallAI 打包脚本
-# 此脚本会自动打包后端和前端成一个完整的 exe 安装包
+# RecallAI Build Script
+# This script automatically packages the backend and frontend into a complete exe installer
 
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "RecallAI 打包流程开始" -ForegroundColor Cyan
+Write-Host "RecallAI Build Process Started" -ForegroundColor Cyan
 Write-Host "======================================" -ForegroundColor Cyan
 
-# 1. 打包 Python 后端
-Write-Host "`n[1/4] 打包 Python 后端..." -ForegroundColor Yellow
+# 1. Package Python Backend
+Write-Host "`n[1/4] Packaging Python Backend..." -ForegroundColor Yellow
 Set-Location backend
 
-# 检查是否存在 dist 目录并清理
+# Check and clean dist directory
 if (Test-Path "dist") {
-    Write-Host "清理旧的打包文件..." -ForegroundColor Gray
+    Write-Host "Cleaning old build files..." -ForegroundColor Gray
     Remove-Item -Recurse -Force dist
 }
 
-# 使用 PyInstaller 打包
-Write-Host "运行 PyInstaller..." -ForegroundColor Gray
+# Package with PyInstaller
+Write-Host "Running PyInstaller..." -ForegroundColor Gray
 python -m PyInstaller main.spec --clean
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n❌ Python 后端打包失败！" -ForegroundColor Red
+    Write-Host "`nPython backend packaging failed!" -ForegroundColor Red
     Set-Location ..
     exit 1
 }
 
-Write-Host "✓ Python 后端打包完成" -ForegroundColor Green
+Write-Host "Python backend packaging completed" -ForegroundColor Green
 Set-Location ..
 
-# 2. 构建前端
-Write-Host "`n[2/4] 构建前端..." -ForegroundColor Yellow
+# 2. Build Frontend
+Write-Host "`n[2/4] Building Frontend..." -ForegroundColor Yellow
 Set-Location frontend
 
-# 安装依赖（如果需要）
+# Install dependencies if needed
 if (-not (Test-Path "node_modules")) {
-    Write-Host "安装 npm 依赖..." -ForegroundColor Gray
+    Write-Host "Installing npm dependencies..." -ForegroundColor Gray
     npm install
 }
 
-# 构建前端
-Write-Host "构建 Vite 项目..." -ForegroundColor Gray
+# Build frontend
+Write-Host "Building Vite project..." -ForegroundColor Gray
 npm run build
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n❌ 前端构建失败！" -ForegroundColor Red
+    Write-Host "`nFrontend build failed!" -ForegroundColor Red
     Set-Location ..
     exit 1
 }
 
-Write-Host "✓ 前端构建完成" -ForegroundColor Green
+Write-Host "Frontend build completed" -ForegroundColor Green
 
-# 3. 打包 Electron 应用
-Write-Host "`n[3/4] 打包 Electron 应用..." -ForegroundColor Yellow
-Write-Host "运行 electron-builder..." -ForegroundColor Gray
+# 3. Package Electron App
+Write-Host "`n[3/4] Packaging Electron App..." -ForegroundColor Yellow
+Write-Host "Running electron-builder..." -ForegroundColor Gray
 npm run dist
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "`n❌ Electron 打包失败！" -ForegroundColor Red
+    Write-Host "`nElectron packaging failed!" -ForegroundColor Red
     Set-Location ..
     exit 1
 }
 
-Write-Host "✓ Electron 应用打包完成" -ForegroundColor Green
+Write-Host "Electron app packaging completed" -ForegroundColor Green
 Set-Location ..
 
-# 4. 完成
+# 4. Complete
 Write-Host "`n======================================" -ForegroundColor Cyan
-Write-Host "✓ 打包完成！" -ForegroundColor Green
+Write-Host "Build completed successfully!" -ForegroundColor Green
 Write-Host "======================================" -ForegroundColor Cyan
-Write-Host "`n安装包位置: frontend\release\" -ForegroundColor Cyan
-Write-Host "你可以在该目录找到生成的安装程序" -ForegroundColor Cyan
+Write-Host "`nInstaller location: frontend\release\" -ForegroundColor Cyan
+Write-Host "You can find the generated installer in that directory" -ForegroundColor Cyan

@@ -123,7 +123,8 @@ function App() {
             // Transform backend card shape to the UI shape expected by InterviewCard
             const uiCard = {
               id: card.id,
-              title: card.topic || card.title || "",
+              // 过滤掉 loading 状态的 topic
+              title: (card.topic && card.topic !== 'loading...') ? card.topic : (card.title || ""),
               // InterviewCard expects content as an array of lines
               content: Array.isArray(card.content)
                 ? card.content
@@ -168,45 +169,63 @@ function App() {
 
   // Start backend listening
   const startInterview = async () => {
+    console.log('🚀 Attempting to start interview...');
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/start', { method: 'POST' });
+      const res = await fetch('http://127.0.0.1:8000/api/start', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      console.log('📥 Start response:', data);
+      
       if (res.ok) {
         setStatus('Startup command sent...');
         setIsRunning(true);
         setTranscript([]); // Clear frontend display on startup
         setUserHasScrolled(false); // Reset scroll state
         prevTranscriptLength.current = 0; // Reset transcript length counter
+        console.log('✅ Interview started successfully');
       } else {
         setStatus('Startup request failed');
+        console.error('❌ Start request failed:', res.status);
       }
     } catch (err) {
-      console.error('start error', err);
+      console.error('❌ Start error:', err);
       setStatus('Startup error, check backend');
     }
   };
 
   // Stop backend listening
   const stopInterview = async () => {
+    console.log('🛑 Attempting to stop interview...');
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/stop', { method: 'POST' });
+      const res = await fetch('http://127.0.0.1:8000/api/stop', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      console.log('📥 Stop response:', data);
+      
       if (res.ok) {
         setStatus('Backend listening stopped');
         setIsRunning(false);
+        console.log('✅ Interview stopped successfully');
         // Reload transcript history from backend after stopping
         try {
           const response = await fetch('http://127.0.0.1:8000/api/transcripts');
           if (response.ok) {
-            const data = await response.json();
-            setTranscriptHistory(data.transcripts || []);
+            const historyData = await response.json();
+            setTranscriptHistory(historyData.transcripts || []);
           }
         } catch (error) {
           console.error('Error reloading transcript history:', error);
         }
       } else {
         setStatus('Stop request failed');
+        console.error('❌ Stop request failed:', res.status);
       }
     } catch (err) {
-      console.error('stop error', err);
+      console.error('❌ Stop error:', err);
       setStatus('Stop error, check backend');
     }
   };

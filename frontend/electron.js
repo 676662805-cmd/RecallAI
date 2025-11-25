@@ -1,161 +1,214 @@
-const { app, BrowserWindow } = require('electron');
-const path = require('path');
+﻿const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const { spawn } = require('child_process');
-const fs = require('fs');
+const path = require('path');
+const Store = require('electron-store');
+
+const store = new Store();
 
 let mainWindow;
-let pythonProcess;
+let popupWindow = null;
+let popupPosition = null;
+let backendProcess = null;
 
-// 获取 Python 后端路径
-function getPythonBackendPath() {
+function startBackend() {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Development mode: Backend should be started via npm run dev');
+    return;
+  }
+
+  let backendPath;
+  let cwd;
+
   if (app.isPackaged) {
-    // 打包后，Python 后端在 resources/backend 目录
-    return path.join(process.resourcesPath, 'backend', 'main.exe');
+    const backendName = process.platform === 'win32' ? 'main.exe' : 'main';
+    backendPath = path.join(process.resourcesPath, 'backend', backendName);
+    cwd = path.join(process.resourcesPath, 'backend');
   } else {
-    // 开发环境，在 backend 目录
-    return path.join(__dirname, '..', 'backend', 'main.py');
+    const backendName = process.platform === 'win32' ? 'main.exe' : 'main';
+    backendPath = path.join(__dirname, '../backend/dist', backendName);
+    cwd = path.join(__dirname, '../backend/dist');
   }
+
+  console.log(`Starting backend from: ${backendPath}`);
+
+  const userDataPath = app.getPath('userData');
+  console.log(`Backend data directory: ${userDataPath}`);
+
+  const env = Object.assign({}, process.env, {
+    GROQ_API_KEY: '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',
+    MIC_DEVICE_NAME: 'default'
+  });
+
+  backendProcess = spawn(backendPath, [], {
+    cwd: cwd,
+    env: env,
+    stdio: 'pipe'
+  });
+
+  backendProcess.stdout.on('data', (data) => {
+    console.log(`Backend: ${data}`);
+  });
+
+  backendProcess.stderr.on('data', (data) => {
+    console.error(`Backend Error: ${data}`);
+  });
+
+  backendProcess.on('error', (err) => {
+    console.error('Failed to start backend:', err);
+  });
+
+  backendProcess.on('close', (code) => {
+    console.log(`Backend process exited with code ${code}`);
+    backendProcess = null;
+  });
 }
 
-// 获取 Python 可执行文件路径
-function getPythonExecutable() {
-  if (app.isPackaged) {
-    // 打包后使用编译的 exe
-    return getPythonBackendPath();
-  } else {
-    // 开发环境使用 python
-    return 'python';
-  }
-}
-
-// 启动 Python 后端
-function startPythonBackend() {
-  const pythonPath = getPythonExecutable();
-  const backendPath = getPythonBackendPath();
-  
-  console.log('Starting Python backend...');
-  console.log('Python executable:', pythonPath);
-  console.log('Backend path:', backendPath);
-
-  try {
-    if (app.isPackaged) {
-      // 打包后直接运行 exe
-      pythonProcess = spawn(pythonPath, [], {
-        cwd: path.dirname(backendPath),
-        stdio: 'pipe'
-      });
-    } else {
-      // 开发环境运行 Python 脚本
-      pythonProcess = spawn(pythonPath, [backendPath], {
-        cwd: path.dirname(backendPath),
-        stdio: 'pipe'
-      });
-    }
-
-    pythonProcess.stdout.on('data', (data) => {
-      console.log(`Python stdout: ${data}`);
-    });
-
-    pythonProcess.stderr.on('data', (data) => {
-      console.error(`Python stderr: ${data}`);
-    });
-
-    pythonProcess.on('close', (code) => {
-      console.log(`Python process exited with code ${code}`);
-    });
-
-    pythonProcess.on('error', (err) => {
-      console.error('Failed to start Python process:', err);
-    });
-
-    console.log('Python backend started successfully');
-  } catch (error) {
-    console.error('Error starting Python backend:', error);
-  }
-}
-
-// 创建主窗口
-function createWindow() {
+function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      preload: path.join(__dirname, 'preload.js')
+      nodeIntegration: false
     }
   });
 
-  // 开发环境加载 Vite 开发服务器
-  if (!app.isPackaged) {
+  if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
-    // 生产环境加载打包后的文件
-    mainWindow.loadFile(path.join(__dirname, 'dist', 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+  }
+}
+
+function createPopupWindow(cardData) {
+  // Close existing popup and save position
+  if (popupWindow && !popupWindow.isDestroyed()) {
+    const bounds = popupWindow.getBounds();
+    popupPosition = { x: bounds.x, y: bounds.y };
+    popupWindow.close();
   }
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+
+  // Determine popup position
+  let x, y;
+  if (popupPosition) {
+    x = popupPosition.x;
+    y = popupPosition.y;
+  } else {
+    const savedPosition = store.get('popupPosition');
+    if (savedPosition) {
+      x = savedPosition.x;
+      y = savedPosition.y;
+    } else {
+      x = width - 370; // Top right corner with margin
+      y = 20;
+    }
+  }
+
+  popupWindow = new BrowserWindow({
+    width: 350,
+    height: 200,
+    x: x,
+    y: y,
+    frame: false,
+    alwaysOnTop: true,
+    transparent: true,
+    resizable: false,
+    skipTaskbar: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  popupWindow.loadFile(path.join(__dirname, 'popup.html'));
+
+  popupWindow.webContents.on('did-finish-load', () => {
+    popupWindow.webContents.send('card-data', cardData);
+    
+    // Auto-adjust window size to fit content
+    setTimeout(() => {
+      popupWindow.webContents.executeJavaScript(`
+        (function() {
+          const container = document.querySelector('.popup-container');
+          if (container) {
+            const rect = container.getBoundingClientRect();
+            return {
+              width: Math.ceil(rect.width),
+              height: Math.ceil(rect.height)
+            };
+          }
+          return null;
+        })();
+      `).then(size => {
+        if (size && popupWindow && !popupWindow.isDestroyed()) {
+          const bounds = popupWindow.getBounds();
+          const newWidth = Math.max(320, Math.min(620, size.width + 40));
+          const newHeight = Math.max(170, Math.min(600, size.height + 40));
+          
+          popupWindow.setBounds({
+            x: bounds.x,
+            y: bounds.y,
+            width: newWidth,
+            height: newHeight
+          });
+        }
+      }).catch(err => console.error('Error adjusting window size:', err));
+    }, 150);
+  });
+
+  popupWindow.on('close', () => {
+    if (popupWindow && !popupWindow.isDestroyed()) {
+      const bounds = popupWindow.getBounds();
+      popupPosition = { x: bounds.x, y: bounds.y };
+      store.set('popupPosition', popupPosition);
+    }
+  });
+
+  popupWindow.on('move', () => {
+    if (popupWindow && !popupWindow.isDestroyed()) {
+      const bounds = popupWindow.getBounds();
+      popupPosition = { x: bounds.x, y: bounds.y };
+    }
   });
 }
 
-// 等待后端启动
-function waitForBackend(callback, maxRetries = 30) {
-  let retries = 0;
-  const checkBackend = setInterval(() => {
-    fetch('http://localhost:8000/health')
-      .then(response => {
-        if (response.ok) {
-          clearInterval(checkBackend);
-          console.log('Backend is ready!');
-          callback();
-        }
-      })
-      .catch(() => {
-        retries++;
-        if (retries >= maxRetries) {
-          clearInterval(checkBackend);
-          console.error('Backend failed to start within timeout');
-          callback(); // 继续启动前端，即使后端未就绪
-        }
-      });
-  }, 1000);
-}
-
-// 应用准备就绪
 app.whenReady().then(() => {
-  // 先启动 Python 后端
-  startPythonBackend();
-
-  // 等待后端启动后再创建窗口
-  setTimeout(() => {
-    createWindow();
-  }, 3000); // 给后端 3 秒启动时间
+  startBackend();
+  createMainWindow();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+      createMainWindow();
     }
   });
 });
 
-// 所有窗口关闭
+app.on('will-quit', () => {
+  if (backendProcess) {
+    backendProcess.kill();
+  }
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
   }
 });
 
-// 应用退出前关闭 Python 进程
-app.on('will-quit', () => {
-  if (pythonProcess) {
-    console.log('Killing Python process...');
-    pythonProcess.kill();
-  }
+// Listen for create popup request
+ipcMain.on('show-popup', (event, cardData) => {
+  createPopupWindow(cardData);
 });
 
-// 处理未捕获的异常
-process.on('uncaughtException', (error) => {
-  console.error('Uncaught exception:', error);
+// Listen for close popup request
+ipcMain.on('close-popup', () => {
+  if (popupWindow && !popupWindow.isDestroyed()) {
+    popupWindow.close();
+  }
 });

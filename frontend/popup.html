@@ -1,0 +1,172 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RecallAI Ghost Popup</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background: transparent;
+      overflow: hidden;
+    }
+
+    .popup-container {
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: white;
+      min-width: 300px;
+      max-width: 600px;
+      min-height: 150px;
+      position: relative;
+      cursor: move;
+      -webkit-app-region: drag; /* 浣挎暣涓獥鍙ｅ彲鎷栨嫿 */
+    }
+
+    .popup-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .popup-title {
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.3;
+      flex: 1;
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      margin-left: 12px;
+      -webkit-app-region: no-drag; /* 鎸夐挳鍖哄煙涓嶅彲鎷栨嫿 */
+      transition: background 0.2s;
+    }
+
+    .close-btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .popup-content {
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    .popup-content p {
+      margin-bottom: 8px;
+    }
+
+    .popup-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .popup-tag {
+      background: rgba(64, 156, 255, 0.3);
+      border: 1px solid rgba(64, 156, 255, 0.6);
+      color: #64a4ff;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <div class="popup-container">
+    <div class="loading" id="loading">Loading...</div>
+    
+    <div class="popup-content-wrapper" id="content" style="display: none;">
+      <div class="popup-header">
+        <div class="popup-title" id="title">Card Title</div>
+        <button class="close-btn" id="closeBtn" title="Close">×</button>
+      </div>
+      
+      <div class="popup-content" id="content-text">
+        <p>Card content will appear here...</p>
+      </div>
+      
+      <div class="popup-tags" id="tags"></div>
+    </div>
+  </div>
+
+  <script>
+    // 鐩戝惉鍗＄墖鏁版嵁
+    window.electronAPI.onCardData((cardData) => {
+      console.log('Received card data:', cardData);
+      
+      const loading = document.getElementById('loading');
+      const content = document.getElementById('content');
+      const title = document.getElementById('title');
+      const contentText = document.getElementById('content-text');
+      const tags = document.getElementById('tags');
+      
+      // 隐藏加载状态
+      loading.style.display = 'none';
+      content.style.display = 'block';
+      
+      // 填充标题
+      title.textContent = cardData.title || cardData.topic || 'Untitled';
+      
+      // 填充内容
+      if (Array.isArray(cardData.content)) {
+        contentText.innerHTML = cardData.content.map(line => `<p>${line}</p>`).join('');
+      } else if (typeof cardData.content === 'string') {
+        contentText.innerHTML = cardData.content.split('\n').map(line => `<p>${line}</p>`).join('');
+      } else {
+        contentText.innerHTML = '<p>No content available</p>';
+      }
+      
+      // 填充标签
+      tags.innerHTML = '';
+      if (Array.isArray(cardData.tags)) {
+        cardData.tags.forEach(tag => {
+          const tagEl = document.createElement('span');
+          tagEl.className = 'popup-tag';
+          tagEl.textContent = tag;
+          tags.appendChild(tagEl);
+        });
+      }
+    });
+    
+    // 关闭按钮事件
+    document.getElementById('closeBtn').addEventListener('click', () => {
+      window.electronAPI.closePopup();
+    });
+    
+    // 防止右键菜单
+    document.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+    });
+  </script>
+</body>
+</html>

@@ -1,10 +1,19 @@
-// Preload script for Electron
-// 这里可以暴露安全的 API 给渲染进程使用
+﻿const { contextBridge, ipcRenderer } = require('electron');
 
-const { contextBridge } = require('electron');
-
+// 涓烘覆鏌撹繘绋嬫毚闇插畨鍏ㄧ殑API
 contextBridge.exposeInMainWorld('electronAPI', {
-  // 可以在这里添加需要暴露给前端的 API
-  platform: process.platform,
-  isPackaged: process.env.NODE_ENV === 'production'
+  // 鏄剧ず寮圭獥
+  showPopup: (cardData) => {
+    ipcRenderer.send('show-popup', cardData);
+  },
+  
+  // 鍏抽棴寮圭獥
+  closePopup: () => {
+    ipcRenderer.send('close-popup');
+  },
+  
+  // 鐩戝惉鍗＄墖鏁版嵁
+  onCardData: (callback) => {
+    ipcRenderer.on('card-data', (event, data) => callback(data));
+  }
 });

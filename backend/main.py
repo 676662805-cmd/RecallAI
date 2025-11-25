@@ -196,7 +196,11 @@ def health_check(): return {"status": "healthy", "service": "RecallAI Backend"}
 
 @app.post("/api/start")
 def start_interview():
-    if state.is_running: return {"msg": "Running"}
+    print(f"📥 Received START request, current state: is_running={state.is_running}")
+    
+    if state.is_running: 
+        print("⚠️ Already running, ignoring start request")
+        return {"msg": "Already running", "is_running": True}
     
     # ✨ 重置状态 - 确保清空所有旧数据
     state.is_running = True
@@ -207,13 +211,17 @@ def start_interview():
     state.card_history = []
     state.start_time = time.time()
     
+    print("🚀 Starting background listener thread...")
     t = threading.Thread(target=background_listener)
     t.daemon = True
     t.start()
-    return {"msg": "Started"}
+    print("✅ Background listener started!")
+    return {"msg": "Started", "is_running": True}
 
 @app.post("/api/stop")
 def stop_interview():
+    print(f"📥 Received STOP request, current state: is_running={state.is_running}")
+    
     state.is_running = False
     
     # ✨ 停止时保存文件（只有当有记录时才保存）
@@ -226,7 +234,8 @@ def stop_interview():
     # ✨ 保存后立即清空，防止重复保存
     state.transcript_log = []
     
-    return {"msg": "Stopped"}
+    print("✅ Stopped successfully")
+    return {"msg": "Stopped", "is_running": False}
 
 @app.get("/api/poll")
 def get_latest_result():
