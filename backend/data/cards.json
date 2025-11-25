@@ -1,52 +1,27 @@
 [
   {
-    "id": "card_10",
-    "topic": "What are Key Risk Indicators (KRIs), and how are they used?",
-    "content": "KRIs are measurable metrics that help track potential risk exposures over time.For example, a sudden rise in failed transactions or delayed reconciliations might indicate process risk.\nBy monitoring KRIs on dashboards, control teams can spot trends early and take preventive actions before an incident escalates.In short, KRIs turn risk monitoring into data-driven decision-making."
-  },
-  {
-    "id": "card_9",
-    "topic": "If you found a recurring issue, how would you perform root cause analysis?",
-    "content": "I’d first collect facts — when, where, and how often the issue happens.Then, I’d use a simple “5 Whys” approach to trace it back to the real cause, whether it’s a policy gap, training issue, or system error.\nAfter identifying the root cause, I’d suggest corrective actions and monitor whether they actually fix the problem.This method prevents future repeats instead of just treating symptoms."
-  },
-  {
-    "id": "card_8",
+    "id": "card_5",
     "topic": "How would you assess whether a control is effective?",
-    "content": "I’d evaluate it based on design and operating effectiveness.Design means the control logically prevents or detects the risk; operating effectiveness means it actually works in practice.\nI’d test by sampling evidence — for example, checking if approvals or reconciliations were consistently completed — and see if exceptions exist.If the control fails, I’d recommend adjustments or automation to strengthen it."
+    "content": "I’d evaluate it based on design and operating effectiveness.Design means the control logically prevents or detects the risk; operating effectiveness means it actually works in practice.\nI’d test by sampling evidence — for example, checking if approvals or reconciliations were consistently completed — and see if exceptions exist.If the control fails, I’d recommend adjustments or automation to strengthen"
   },
   {
-    "id": "card_7",
+    "id": "card_4",
     "topic": "How would you identify key risks in a new business process?",
     "content": "I’d start by mapping the end-to-end process — understanding each step, its purpose, and owners.Then, I’d identify potential failure points using “what-if” thinking: what if data is wrong, approvals are skipped, or systems fail?After that, I’d assess impact and likelihood, prioritize the highest risks, and check if existing controls cover them.\nThis structured approach helps ensure no blind spots remain."
   },
   {
-    "id": "card_6",
-    "topic": "What is operational risk, and why is it important in banking?",
-    "content": "Operational risk refers to losses resulting from failed processes, systems, or human errors — rather than market or credit risk. In banking, it’s critical because even small process failures can lead to large financial or reputational losses.\nFor instance, a data entry error in a loan system or an untested change in a transaction process can cause compliance breaches. Effective control management reduces those risks and keeps customer trust."
-  },
-  {
-    "id": "card_5",
-    "topic": "What does “Control Management” mean to you?",
-    "content": "Control Management means ensuring that business processes operate effectively and within risk and compliance standards. It’s about identifying where things could go wrong, designing controls to prevent or detect those issues, and continuously testing whether those controls work.\nFor example, in my previous project at IQVIA, we built a quality management workflow to reduce manual data errors. I helped define checkpoints and approval steps — that’s essentially applying control management principles: preventing risk before it happens."
-  },
-  {
-    "id": "card_4",
-    "topic": "What is operational risk, and why is it important in banking?",
-    "content": "Operational risk refers to losses resulting from failed processes, systems, or human errors — rather than market or credit risk. In banking, it’s critical because even small process failures can lead to large financial or reputational losses.\nFor instance, a data entry error in a loan system or an untested change in a transaction process can cause compliance breaches. Effective control management reduces those risks and keeps customer trust."
-  },
-  {
     "id": "card_3",
-    "topic": "What does “Control Management” mean to you? Answer Template：",
-    "content": "Control Management means ensuring that business processes operate effectively and within risk and compliance standards. It’s about identifying where things could go wrong, designing controls to prevent or detect those issues, and continuously testing whether those controls work.\nFor example, in my previous project at IQVIA, we built a quality management workflow to reduce manual data errors. I helped define checkpoints and approval steps — that’s essentially applying control management principles: preventing risk before it happens."
+    "topic": "What is operational risk, and why is it important in banking?",
+    "content": "Operational risk refers to losses resulting from failed processes, systems, or human errors — rather than market or credit risk. In banking, it’s critical because even small process failures can lead to large financial or reputational losses.\nFor instance, a data entry error in a loan system or an untested change in a transaction process can cause compliance breaches. Effective control management reduces those risks and keeps customer trust."
   },
   {
     "id": "card_2",
-    "topic": "asd",
-    "content": "kuhaydfkjahsdgfkjahsdgfkjashdgfakjbxzcjhkvbakjhsdbvf\nasdkjfuhygasdkhjfgasdjhklfgaskjdhfgakjshdgfmb czxjkvosadhugfoiawluegfkuiasdhgbfkhjasdfasd\nasdfkjhgasdkhjfavsdhjkfgvalksiudgfoawuhvbkjhasvgxcoifuhasdf\nasdlkjfhggaoiwsleuhvbfjakhldgfiopuagerbfawef"
+    "topic": "What does “Control Management” mean to you? Answer Template：",
+    "content": "ontrol Management means ensuring that business processes operate effectively and within risk and compliance standards. It’s about identifying where things could go wrong, designing controls to prevent or detect those issues, and continuously testing whether those controls work.\nFor example, in my previous project at IQVIA, we built a quality management workflow to reduce manual data errors. I helped define checkpoints and approval steps — that’s essentially applying control management principles: preventing risk before it happens."
   },
   {
     "id": "card_1",
     "topic": "abc",
-    "content": "abasdkj\nasdjhkg\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd"
+    "content": "abc"
   }
 ]

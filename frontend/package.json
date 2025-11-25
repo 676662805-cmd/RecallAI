@@ -51,19 +51,32 @@
     ],
     "extraResources": [
       {
-        "from": "../backend/dist/main.exe",
-        "to": "backend/main.exe"
-      },
-      {
         "from": "../backend/data",
         "to": "backend/data"
       }
     ],
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icons/icon.icns",
+      "extraResources": [
+        {
+          "from": "../backend/dist/main",
+          "to": "backend/main"
+        }
+      ]
+    },
     "win": {
       "target": [
         "nsis"
       ],
-      "sign": null
+      "icon": "build/icons/icon.ico",
+      "sign": null,
+      "extraResources": [
+        {
+          "from": "../backend/dist/main.exe",
+          "to": "backend/main.exe"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,
