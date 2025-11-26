@@ -62,6 +62,10 @@
         {
           "from": "../backend/dist/main",
           "to": "backend/main"
+        },
+        {
+          "from": "../backend/.env",
+          "to": "backend/.env"
         }
       ]
     },
