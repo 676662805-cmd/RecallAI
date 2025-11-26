@@ -1,16 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 const RenameCategoryModal = ({ theme, isOpen, onClose, onRename, currentName }) => {
-    const [name, setName] = useState('');
-
-    // Update input when modal opens with current category name
-    useEffect(() => {
-        if (isOpen && currentName) {
-            setName(currentName);
-        } else if (!isOpen) {
-            setName('');
-        }
-    }, [isOpen, currentName]);
+    const [name, setName] = useState(currentName || '');
 
     if (!isOpen) return null;
 

@@ -10,7 +10,7 @@ const initialCategories = [];
 const initialMockCards = [];
 
 // External component 1: Sidebar
-const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNewCategoryModalOpen, handleReturnClick, onDeleteCategory, onRenameCategory, onOpenRenameModal }) => {
+const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNewCategoryModalOpen, handleReturnClick, onDeleteCategory, onOpenRenameModal }) => {
     const [menuOpen, setMenuOpen] = useState(null);
 
     const handleMenuClick = (e, catId) => {
@@ -704,7 +704,6 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
                 setIsNewCategoryModalOpen={setIsNewCategoryModalOpen}
                 handleReturnClick={handleReturnToInterview}
                 onDeleteCategory={handleDeleteCategory}
-                onRenameCategory={handleRenameCategory}
                 onOpenRenameModal={handleOpenRenameModal}
             />
             
@@ -738,6 +737,7 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
             />
 
             <RenameCategoryModal
+                key={renamingCategory?.id || 'rename-modal'}
                 isOpen={isRenameCategoryModalOpen}
                 onClose={() => {
                     setIsRenameCategoryModalOpen(false);
