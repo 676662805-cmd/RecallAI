@@ -13,7 +13,8 @@
     "electron": "electron .",
     "electron:dev": "concurrently \"npm run dev\" \"wait-on http://localhost:5173 && electron .\"",
     "pack": "electron-builder --dir",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder",
+    "generate-icons": "./generate-icons.sh"
   },
   "dependencies": {
     "electron-store": "^8.2.0",
@@ -56,7 +57,12 @@
       }
     ],
     "mac": {
-      "target": "dmg",
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
       "icon": "build/icons/icon.icns",
       "extraResources": [
         {

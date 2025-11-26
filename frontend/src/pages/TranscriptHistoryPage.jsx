@@ -164,7 +164,7 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                         onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                     >
-                                        ✏️ Rename
+                                        Rename
                                     </button>
                                     <button
                                         onClick={() => handleDelete(t.id)}
@@ -182,7 +182,7 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                                         onMouseEnter={e => e.currentTarget.style.background = theme.isDark ? '#333' : '#f5f5f5'}
                                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                                     >
-                                        🗑️ Delete
+                                        Delete
                                     </button>
                                 </div>
                             )}

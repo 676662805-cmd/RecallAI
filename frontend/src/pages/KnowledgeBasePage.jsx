@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import CardEditorModal from '../components/CardEditorModal'; 
 import useSystemTheme from '../hooks/useSystemTheme';
 import NewCategoryModal from '../components/NewCategoryModal';
+import RenameCategoryModal from '../components/RenameCategoryModal';
 
 // --- Data definitions (must be outside functions to avoid recreation) ---
 const initialCategories = [];
@@ -9,7 +10,7 @@ const initialCategories = [];
 const initialMockCards = [];
 
 // External component 1: Sidebar
-const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNewCategoryModalOpen, handleReturnClick, onDeleteCategory, onRenameCategory }) => {
+const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNewCategoryModalOpen, handleReturnClick, onDeleteCategory, onRenameCategory, onOpenRenameModal }) => {
     const [menuOpen, setMenuOpen] = useState(null);
 
     const handleMenuClick = (e, catId) => {
@@ -22,10 +23,7 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
     };
 
     const handleRename = (catId, currentName) => {
-        const newName = window.prompt('Enter new category name:', currentName);
-        if (newName && newName.trim() && newName.trim() !== currentName) {
-            onRenameCategory(catId, newName.trim());
-        }
+        onOpenRenameModal(catId, currentName);
         setMenuOpen(null);
     };
 
@@ -509,6 +507,8 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCard, setEditingCard] = useState(null); 
     const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+    const [isRenameCategoryModalOpen, setIsRenameCategoryModalOpen] = useState(false);
+    const [renamingCategory, setRenamingCategory] = useState(null);
     const [creationKey, setCreationKey] = useState(0);
     
     // 🔥 Load cards from backend only on first use (if localStorage doesn't exist at all)
@@ -648,7 +648,15 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
         }
     };
 
-    const handleRenameCategory = (catId, newName) => {
+    const handleOpenRenameModal = (catId, currentName) => {
+        setRenamingCategory({ id: catId, name: currentName });
+        setIsRenameCategoryModalOpen(true);
+    };
+
+    const handleRenameCategory = (newName) => {
+        if (!renamingCategory) return;
+        
+        const catId = renamingCategory.id;
         const newId = newName.toLowerCase().replace(/\s/g, '_');
         
         // Check if new name already exists
@@ -675,6 +683,10 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
         if (activeCategory === catId) {
             setActiveCategory(newId);
         }
+        
+        // Close modal and clear state
+        setIsRenameCategoryModalOpen(false);
+        setRenamingCategory(null);
     };
 
     return (
@@ -693,6 +705,7 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
                 handleReturnClick={handleReturnToInterview}
                 onDeleteCategory={handleDeleteCategory}
                 onRenameCategory={handleRenameCategory}
+                onOpenRenameModal={handleOpenRenameModal}
             />
             
             <TableView 
@@ -721,6 +734,17 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
                 isOpen={isNewCategoryModalOpen}
                 onClose={() => setIsNewCategoryModalOpen(false)}
                 onCreate={handleCreateCategory}
+                theme={theme}
+            />
+
+            <RenameCategoryModal
+                isOpen={isRenameCategoryModalOpen}
+                onClose={() => {
+                    setIsRenameCategoryModalOpen(false);
+                    setRenamingCategory(null);
+                }}
+                onRename={handleRenameCategory}
+                currentName={renamingCategory?.name || ''}
                 theme={theme}
             />
         </div>
