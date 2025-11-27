@@ -69,7 +69,7 @@ export default function LoginPage({ onLoginSuccess }) {
   return (
     <div className="login-container">
       <div className="login-box">
-        <h1 className="login-title">🎯 RecallAI</h1>
+        <h1 className="login-title">RecallAI</h1>
         <p className="login-subtitle">AI-Powered Interview Assistant</p>
 
         <div className="login-toggle">
@@ -114,7 +114,7 @@ export default function LoginPage({ onLoginSuccess }) {
           {error && <div className="error-message">{error}</div>}
 
           <button type="submit" className="submit-btn" disabled={loading}>
-            {loading ? '⏳ Processing...' : (isLogin ? '🔓 Login' : '✨ Create Account')}
+            {loading ? 'Processing...' : (isLogin ? 'Login' : 'Create Account')}
           </button>
         </form>
 

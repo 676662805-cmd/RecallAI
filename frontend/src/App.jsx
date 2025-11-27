@@ -12,7 +12,21 @@ function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useSystemTheme();
-  const { logout } = useAuth();
+  const { logout, token } = useAuth();
+  
+  // 🔥 发送 Token 到后端
+  useEffect(() => {
+    if (token) {
+      fetch('http://127.0.0.1:8000/api/set-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token })
+      })
+      .then(r => r.json())
+      .then(d => console.log('✅ Token sent to backend:', d))
+      .catch(e => console.error('❌ Failed to send token:', e))
+    }
+  }, [token])
   
   // Determine current page from URL
   const currentPage = location.pathname === '/knowledge' ? 'knowledge' 

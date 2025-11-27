@@ -21,10 +21,15 @@ export const AuthProvider = ({ children }) => {
     checkUser()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user ?? null)
       setToken(session?.access_token ?? null)
       setLoading(false)
+      
+      // 如果有新的 session，发送 token 到后端
+      if (session?.access_token) {
+        await sendTokenToBackend(session.access_token)
+      }
     })
 
     return () => subscription.unsubscribe()
@@ -35,6 +40,11 @@ export const AuthProvider = ({ children }) => {
       const { data: { session } } = await supabase.auth.getSession()
       setUser(session?.user ?? null)
       setToken(session?.access_token ?? null)
+      
+      // 如果有 session，发送 token 到后端
+      if (session?.access_token) {
+        await sendTokenToBackend(session.access_token)
+      }
     } catch (error) {
       console.error('Error checking user session:', error)
     } finally {
@@ -42,11 +52,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const login = async (token, user) => {
-    setToken(token)
-    setUser(user)
-    
-    // Send token to local backend
+  const sendTokenToBackend = async (token) => {
     try {
       const response = await fetch('http://127.0.0.1:8000/api/set-token', {
         method: 'POST',
@@ -62,6 +68,14 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('❌ Error sending token to backend:', error)
     }
+  }
+
+  const login = async (token, user) => {
+    setToken(token)
+    setUser(user)
+    
+    // Send token to local backend
+    await sendTokenToBackend(token)
   }
 
   const logout = async () => {

@@ -3,17 +3,20 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background-color: #000;
+  background-image: radial-gradient(circle at 50% 0%, #2a2a2a 0%, #000000 70%);
+  background-attachment: fixed;
   padding: 20px;
 }
 
 .login-box {
-  background: white;
+  background: #1a1a1a;
   border-radius: 16px;
   padding: 40px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .login-title {
@@ -21,12 +24,12 @@
   font-weight: 700;
   text-align: center;
   margin-bottom: 8px;
-  color: #333;
+  color: #ffffff;
 }
 
 .login-subtitle {
   text-align: center;
-  color: #666;
+  color: #999;
   margin-bottom: 30px;
   font-size: 14px;
 }
@@ -35,7 +38,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 24px;
-  background: #f0f0f0;
+  background: rgba(255, 255, 255, 0.05);
   padding: 4px;
   border-radius: 8px;
 }
@@ -49,13 +52,16 @@
   cursor: pointer;
   font-weight: 500;
   transition: all 0.2s;
-  color: #666;
+  color: #999;
 }
 
 .login-toggle button.active {
-  background: white;
-  color: #667eea;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .form-group {
@@ -66,23 +72,30 @@
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
-  color: #333;
+  color: #ffffff;
   font-size: 14px;
 }
 
 .form-group input {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e0e0e0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   font-size: 15px;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
   box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ffffff;
+}
+
+.form-group input::placeholder {
+  color: #666;
 }
 
 .form-group input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .error-message {
@@ -98,19 +111,23 @@
 .submit-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: white;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: all 0.2s;
 }
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
 }
 
 .submit-btn:disabled {
@@ -121,12 +138,12 @@
 .login-footer {
   text-align: center;
   margin-top: 20px;
-  color: #666;
+  color: #999;
   font-size: 14px;
 }
 
 .login-footer a {
-  color: #667eea;
+  color: #ffffff;
   text-decoration: none;
   font-weight: 600;
   cursor: pointer;
