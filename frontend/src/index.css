@@ -24,9 +24,14 @@ a:hover {
 
 body {
   margin: 0;
+  padding: 0;
   /* 不在 body 上做居中布局 — 保证应用容器能铺满整个视口 */
   min-width: 320px;
   min-height: 100vh;
+  background-color: #000;
+  /* Sophisticated black with white highlight/glow at the top */
+  background-image: radial-gradient(circle at 50% 0%, #2a2a2a 0%, #000000 70%);
+  background-attachment: fixed;
 }
 
 /* 根容器确保铺满宽高并允许内部布局控制 */

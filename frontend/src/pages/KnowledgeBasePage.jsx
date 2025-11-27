@@ -53,8 +53,10 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
             width: '280px',
             minWidth: '280px',
             maxWidth: '280px',
-            background: theme.cardBg, 
-            borderRight: theme.isDark ? '1px solid #444' : '1px solid #ddd', 
+            background: theme.cardBg,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRight: '1px solid rgba(255,255,255,0.1)', 
             height: '100vh',
             display: 'flex', 
             flexDirection: 'column',
@@ -71,10 +73,23 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                     <button
                         onClick={() => setIsNewCategoryModalOpen(true)} 
                         style={{
-                            padding: '5px 10px', borderRadius: '6px', background: theme.accentColor, 
-                            color: 'white', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '18px', lineHeight: '18px',
+                            padding: '5px 10px', 
+                            borderRadius: '6px', 
+                            background: 'rgba(0, 0, 0, 0.4)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                            color: 'white', 
+                            cursor: 'pointer', 
+                            fontWeight: '600', 
+                            fontSize: '18px', 
+                            lineHeight: '18px',
+                            transition: 'all 0.2s',
                             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                         }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                     >
                         +
                     </button>
@@ -260,10 +275,21 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                 <button 
                     onClick={handleReturnClick}
                     style={{
-                        padding: '12px 15px', width: '100%', borderRadius: '8px',
-                        background: theme.accentColor, color: 'white', border: 'none', fontWeight: '700',
-                        cursor: 'pointer'
+                        padding: '12px 15px', 
+                        width: '100%', 
+                        borderRadius: '8px',
+                        background: 'rgba(0, 0, 0, 0.4)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                        color: 'white', 
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
                     }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                 >
                     Back to Interview
                 </button>
@@ -315,11 +341,14 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                         style={{
                             padding: '12px 20px', 
                             borderRadius: '8px',
-                            border: 'none', 
+                            background: 'rgba(0, 0, 0, 0.4)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                             fontWeight: '700',
                             fontSize: '15px',
                             whiteSpace: 'nowrap',
-                            background: '#34c759', 
                             color: 'white', 
                             cursor: 'pointer',
                             transition: 'all 0.2s',
@@ -347,12 +376,12 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                             style={{
                                 position: 'relative',
                                 background: theme.cardBg,
+                                backdropFilter: 'blur(20px)',
+                                WebkitBackdropFilter: 'blur(20px)',
                                 borderRadius: '12px',
                                 padding: '20px',
-                                boxShadow: theme.isDark 
-                                    ? '0 2px 8px rgba(0,0,0,0.3)' 
-                                    : '0 2px 8px rgba(0,0,0,0.08)',
-                                border: theme.isDark ? '1px solid #444' : '1px solid #e0e0e0',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                border: '1px solid rgba(255,255,255,0.1)',
                                 cursor: 'pointer',
                                 transition: 'all 0.3s ease',
                                 height: '200px',
@@ -363,15 +392,11 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                             onClick={() => handleEditCard(card)}
                             onMouseEnter={e => {
                                 e.currentTarget.style.transform = 'translateY(-8px)';
-                                e.currentTarget.style.boxShadow = theme.isDark 
-                                    ? '0 8px 20px rgba(0,0,0,0.4)' 
-                                    : '0 8px 20px rgba(0,0,0,0.15)';
+                                e.currentTarget.style.boxShadow = '0 8px 20px rgba(0,0,0,0.5)';
                             }}
                             onMouseLeave={e => {
                                 e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = theme.isDark 
-                                    ? '0 2px 8px rgba(0,0,0,0.3)' 
-                                    : '0 2px 8px rgba(0,0,0,0.08)';
+                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.3)';
                             }}
                         >
                             {/* Card title */}
@@ -397,28 +422,20 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
                             }}>
                                 <p style={{
                                     fontSize: '14px',
-                                    color: theme.isDark ? '#aaa' : '#666',
+                                    color: '#aaa',
                                     margin: 0,
                                     lineHeight: '1.6',
                                     overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 5,
+                                    WebkitBoxOrient: 'vertical',
                                     wordWrap: 'break-word',
                                     wordBreak: 'break-word',
-                                    whiteSpace: 'pre-wrap',
                                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                                 }}>
                                     {card.components && card.components.join('\n')}
                                 </p>
-                                <div style={{
-                                    position: 'absolute',
-                                    bottom: 0,
-                                    right: 0,
-                                    width: '80px',
-                                    height: '22px',
-                                    background: theme.isDark 
-                                        ? 'linear-gradient(to right, transparent, #2c2c2e 50%)' 
-                                        : 'linear-gradient(to right, transparent, white 50%)',
-                                    pointerEvents: 'none'
-                                }} />
                             </div>
 
                             {/* Star and delete buttons */}

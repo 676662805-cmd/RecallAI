@@ -46,12 +46,15 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
     return (
         <div style={{
             width: '100%',
-            background: theme.cardBg, 
+            background: theme.cardBg,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             display: 'flex', 
             flexDirection: 'column',
             overflow: 'hidden',
             height: '100%',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            borderRight: '1px solid rgba(255,255,255,0.1)'
         }}>
             <div style={{ 
                 padding: '20px 20px 0 20px',
@@ -207,7 +210,7 @@ const TranscriptDetailView = ({ theme, transcript, onBack }) => {
             {/* Header with back button and transcript name */}
             <div style={{ 
                 padding: '20px 30px',
-                borderBottom: theme.isDark ? '1px solid #444' : '1px solid #ddd',
+                borderBottom: '1px solid rgba(255,255,255,0.1)',
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center'
@@ -220,13 +223,19 @@ const TranscriptDetailView = ({ theme, transcript, onBack }) => {
                     style={{
                         padding: '10px 20px', 
                         borderRadius: '8px',
-                        background: theme.accentColor,
+                        background: 'rgba(0, 0, 0, 0.4)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                         color: 'white', 
-                        border: 'none', 
                         fontWeight: '600',
                         cursor: 'pointer',
+                        transition: 'all 0.2s',
                         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
                     }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                 >
                     ← Back
                 </button>
@@ -327,18 +336,24 @@ function TranscriptHistoryPage({ handleReturnToInterview, transcriptHistory, onU
                     borderTop: `1px solid ${theme.isDark ? '#444' : '#f0f0f0'}`,
                     background: theme.cardBg
                 }}>
-                    <button 
+                    <button
                         onClick={handleReturnToInterview}
                         style={{
                             padding: '12px 15px',
                             width: '100%',
                             borderRadius: '8px',
-                            background: theme.accentColor,
+                            background: 'rgba(0, 0, 0, 0.4)',
+                            backdropFilter: 'blur(10px)',
+                            WebkitBackdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.2)',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                             color: 'white',
-                            border: 'none',
                             fontWeight: '700',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
                         }}
+                        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                     >
                         Back to Interview
                     </button>
