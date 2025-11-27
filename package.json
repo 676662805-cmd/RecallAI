@@ -1,0 +1,50 @@
+{
+  "name": "recallai",
+  "version": "1.0.0",
+  "description": "AI-powered conversation recall and knowledge management system",
+  "main": "electron/main.js",
+  "scripts": {
+    "install:all": "npm run install:frontend && npm run install:electron",
+    "install:frontend": "cd frontend && npm install",
+    "install:electron": "cd electron && npm install",
+    
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"npm run dev:electron\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && python main.py",
+    "dev:electron": "cd electron && npm run dev",
+    
+    "build": "npm run build:frontend && npm run build:electron",
+    "build:frontend": "cd frontend && npm run build",
+    "build:electron": "cd electron && npm run build",
+    
+    "dist": "npm run build && npm run dist:electron",
+    "dist:electron": "cd electron && npm run dist",
+    
+    "pack:win": "npm run build && cd electron && npm run build:win",
+    "pack:mac": "npm run build && cd electron && npm run build:mac",
+    "pack:linux": "npm run build && cd electron && npm run build:linux",
+    
+    "start": "cd electron && npm start",
+    "clean": "rm -rf frontend/dist electron/dist node_modules frontend/node_modules electron/node_modules",
+    
+    "setup": "npm run install:all",
+    "postinstall": "npm run setup"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/676662805-cmd/RecallAI.git"
+  },
+  "keywords": [
+    "ai",
+    "conversation",
+    "recall",
+    "knowledge",
+    "electron",
+    "desktop"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

@@ -84,8 +84,12 @@ const CardEditorModal = ({ theme, cardData, isOpen, onClose, onSave, fixedCatego
 
     const modalContentStyle = {
         width: '600px', padding: '30px', 
-        backgroundColor: theme.cardBg, 
-        borderRadius: '15px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+        backgroundColor: theme.cardBg,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderRadius: '15px', 
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+        border: '1px solid rgba(255,255,255,0.1)',
         maxHeight: '80vh', overflowY: 'auto',
     };
 
@@ -147,8 +151,41 @@ const CardEditorModal = ({ theme, cardData, isOpen, onClose, onSave, fixedCatego
 
                     {/* Action Buttons */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                        <button type="button" onClick={onClose} style={{ ...buttonStyle, background: theme.isDark ? '#555' : '#e0e0e0', color: theme.isDark ? 'white' : '#1d1d1f' }}>Cancel</button>
-                        <button type="submit" style={{ ...buttonStyle, background: theme.accentColor, color: 'white' }}>{cardData ? 'Save Changes' : 'Create Card'}</button>
+                        <button 
+                            type="button" 
+                            onClick={onClose} 
+                            style={{ 
+                                ...buttonStyle, 
+                                background: 'rgba(255, 255, 255, 0.2)',
+                                backdropFilter: 'blur(10px)',
+                                WebkitBackdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                color: 'white',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            style={{ 
+                                ...buttonStyle, 
+                                background: 'rgba(0, 0, 0, 0.4)',
+                                backdropFilter: 'blur(10px)',
+                                WebkitBackdropFilter: 'blur(10px)',
+                                border: '1px solid rgba(255,255,255,0.2)',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                                color: 'white',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                            {cardData ? 'Save Changes' : 'Create Card'}
+                        </button>
                     </div>
                 </form>
             </div>

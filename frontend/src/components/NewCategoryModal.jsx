@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // 🔥 Note: All external style definitions removed, now defined inside component
 
 // CardEditorModal Component (用于创建和编辑卡片的模态框)
 const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 接收 theme prop
     const [name, setName] = useState('');
+
+    // Reset input when modal opens/closes
+    useEffect(() => {
+        if (!isOpen) {
+            setName(''); // Clear input when modal closes
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -14,6 +21,11 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
             onCreate(name.trim());
             setName(''); // Reset input field
         }
+    };
+
+    const handleCancel = () => {
+        setName(''); // Clear input field when canceling
+        onClose();
     };
 
     // --- 2. 样式定义 (已替换为动态主题变量，并移到内部) ---
@@ -26,7 +38,11 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
     const modalContentStyle = {
         width: '350px', padding: '25px', 
         backgroundColor: theme.cardBg, // 🔥 Dynamic card background
-        borderRadius: '15px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderRadius: '15px', 
+        boxShadow: '0 10px 30px rgba(0, 0, 0, 0.5)',
+        border: '1px solid rgba(255,255,255,0.1)',
     };
     const titleStyle = { 
         fontSize: '20px', fontWeight: '600', marginBottom: '20px', 
@@ -44,9 +60,18 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
     
     // Dynamic button style function
     const buttonStyle = (type) => ({ 
-        padding: '10px 15px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '15px', fontWeight: '600',
-        background: type === 'submit' ? theme.accentColor : (theme.isDark ? '#555' : '#e0e0e0'),
-        color: type === 'submit' ? 'white' : theme.inputTextColor,
+        padding: '10px 15px', 
+        borderRadius: '8px', 
+        border: '1px solid rgba(255,255,255,0.2)', 
+        cursor: 'pointer', 
+        fontSize: '15px', 
+        fontWeight: '600',
+        background: type === 'submit' ? 'rgba(0, 0, 0, 0.4)' : 'rgba(255, 255, 255, 0.2)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        color: 'white',
+        transition: 'all 0.2s',
         fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
     });
 
@@ -67,8 +92,23 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
                         autoFocus 
                     />
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                        <button type="button" onClick={onClose} style={buttonStyle('cancel')}>Cancel</button>
-                        <button type="submit" style={buttonStyle('submit')}>Create</button>
+                        <button 
+                            type="button" 
+                            onClick={handleCancel} 
+                            style={buttonStyle('cancel')}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            style={buttonStyle('submit')}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                        >
+                            Create
+                        </button>
                     </div>
                 </form>
             </div>

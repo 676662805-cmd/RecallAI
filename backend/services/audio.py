@@ -1,12 +1,31 @@
 import speech_recognition as sr
 import os
+import sys
 import io
 import re
-from groq import Groq
+import requests
 from dotenv import load_dotenv
 
-load_dotenv()
-client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+def get_base_path():
+    """获取程序运行的基础路径，支持开发和打包环境"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的 exe 运行时
+        return os.path.dirname(sys.executable)
+    else:
+        # 开发环境
+        return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+# 加载 .env 文件（支持打包后的路径）
+env_path = os.path.join(get_base_path(), '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
+    print(f"✅ Loaded .env from: {env_path}")
+else:
+    load_dotenv()  # 尝试从默认位置加载
+    print(f"⚠️ .env not found at {env_path}, using default")
+
+# 获取 Render 云端 URL
+RENDER_URL = os.getenv("RENDER_URL", "https://recallai-d9sc.onrender.com")
 
 class AudioService:
     def __init__(self):
@@ -19,6 +38,13 @@ class AudioService:
         
         # --- ✨ 新增：初始化时自动查找设备 ---
         self.target_device_index = self._find_device_index()
+        
+        # --- 🌐 云端化：用户 Token (需要从外部设置) ---
+        self.user_token = None
+    
+    def set_token(self, token: str):
+        """设置用户 Token，用于云端 API 鉴权"""
+        self.user_token = token
         
     def _find_device_index(self):
         """
@@ -63,15 +89,37 @@ class AudioService:
             audio_file = io.BytesIO(wav_bytes)
             audio_file.name = "audio.wav" 
 
-            # 使用 Turbo 模型 + 强制英文
-            transcript = client.audio.transcriptions.create(
-                model="whisper-large-v3-turbo", 
-                file=audio_file,
-                response_format="json",
-                language="en" 
-            )
+            # 🌐 使用云端 API (Render) 进行转录
+            if not self.user_token:
+                print("❌ No user token set! Please call set_token() first")
+                return None
             
-            text = transcript.text.strip()
+            try:
+                # 准备文件和请求头
+                files = {'file': ('audio.wav', audio_file, 'audio/wav')}
+                headers = {'Authorization': f'Bearer {self.user_token}'}
+                
+                # 发送请求到 Render 云端
+                response = requests.post(
+                    f"{RENDER_URL}/v1/proxy/transcribe",
+                    files=files,
+                    headers=headers,
+                    timeout=30
+                )
+                
+                if response.status_code != 200:
+                    print(f"❌ Cloud API Error: {response.status_code} - {response.text}")
+                    return None
+                
+                result = response.json()
+                text = result.get("text", "").strip()
+                
+            except requests.exceptions.RequestException as e:
+                print(f"❌ Request Error: {e}")
+                return None
+            except Exception as e:
+                print(f"❌ Unexpected Error: {e}")
+                return None
 
             # --- 增强的垃圾词过滤 ---
             # 1. 完全匹配过滤（忽略大小写和标点）

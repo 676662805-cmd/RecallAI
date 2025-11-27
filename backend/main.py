@@ -2,12 +2,31 @@ import threading
 import time
 import json
 import os
+import sys
 from datetime import datetime
 from difflib import SequenceMatcher
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from services.audio import AudioService
 from services.matcher import MatchService
+
+# ============================================
+# 获取程序运行的基础路径（支持 PyInstaller 打包）
+# ============================================
+def get_base_path():
+    """获取程序运行的基础路径，支持开发和打包环境"""
+    if getattr(sys, 'frozen', False):
+        # 打包后的 exe 运行时，使用 exe 所在目录
+        return os.path.dirname(sys.executable)
+    else:
+        # 开发环境，使用当前脚本所在目录
+        return os.path.dirname(os.path.abspath(__file__))
+
+# 全局基础路径
+BASE_PATH = get_base_path()
+DATA_PATH = os.path.join(BASE_PATH, "data")
+TRANSCRIPTS_PATH = os.path.join(DATA_PATH, "transcripts")
+CARDS_FILE = os.path.join(DATA_PATH, "cards.json")
 
 app = FastAPI()
 
@@ -35,6 +54,9 @@ class GlobalState:
     # --- ✨ 新增：Transcript 记录 ---
     transcript_log = []      # 存所有的对话记录 [{time, text}, ...]
     start_time = 0           # 面试开始的时间戳
+    
+    # --- 🌐 云端化：用户 Token ---
+    user_token = None        # 用户的认证 Token，用于调用云端 API
 
 state = GlobalState()
 
@@ -49,11 +71,11 @@ def save_transcript_to_file():
         return
     
     # 创建存放目录
-    os.makedirs("data/transcripts", exist_ok=True)
+    os.makedirs(TRANSCRIPTS_PATH, exist_ok=True)
     
     # 文件名：transcript_2023-10-27_10-30.json
     filename = f"transcript_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.json"
-    filepath = os.path.join("data", "transcripts", filename)
+    filepath = os.path.join(TRANSCRIPTS_PATH, filename)
     
     try:
         with open(filepath, "w", encoding="utf-8") as f:
@@ -172,9 +194,30 @@ def background_listener():
 @app.get("/")
 def read_root(): return {"status": "ready"}
 
+@app.get("/health")
+def health_check(): return {"status": "healthy", "service": "RecallAI Backend"}
+
+@app.post("/api/set-token")
+def set_user_token(token_data: dict):
+    """接收并存储前端传来的用户 Token"""
+    token = token_data.get("token")
+    if not token:
+        return {"success": False, "error": "Token is required"}
+    
+    state.user_token = token
+    # 同时设置到 audio_service 和 match_service
+    audio_service.set_token(token)
+    match_service.set_token(token)
+    print(f"✅ User token received and stored (length: {len(token)})")
+    return {"success": True, "msg": "Token stored successfully"}
+
 @app.post("/api/start")
 def start_interview():
-    if state.is_running: return {"msg": "Running"}
+    print(f"📥 Received START request, current state: is_running={state.is_running}")
+    
+    if state.is_running: 
+        print("⚠️ Already running, ignoring start request")
+        return {"msg": "Already running", "is_running": True}
     
     # ✨ 重置状态 - 确保清空所有旧数据
     state.is_running = True
@@ -185,13 +228,17 @@ def start_interview():
     state.card_history = []
     state.start_time = time.time()
     
+    print("🚀 Starting background listener thread...")
     t = threading.Thread(target=background_listener)
     t.daemon = True
     t.start()
-    return {"msg": "Started"}
+    print("✅ Background listener started!")
+    return {"msg": "Started", "is_running": True}
 
 @app.post("/api/stop")
 def stop_interview():
+    print(f"📥 Received STOP request, current state: is_running={state.is_running}")
+    
     state.is_running = False
     
     # ✨ 停止时保存文件（只有当有记录时才保存）
@@ -204,7 +251,8 @@ def stop_interview():
     # ✨ 保存后立即清空，防止重复保存
     state.transcript_log = []
     
-    return {"msg": "Stopped"}
+    print("✅ Stopped successfully")
+    return {"msg": "Stopped", "is_running": False}
 
 @app.get("/api/poll")
 def get_latest_result():
@@ -231,10 +279,9 @@ def rewind_card():
 @app.get("/api/cards")
 def get_cards():
     """获取所有 cards"""
-    cards_file = "data/cards.json"
-    if os.path.exists(cards_file):
+    if os.path.exists(CARDS_FILE):
         try:
-            with open(cards_file, 'r', encoding='utf-8') as f:
+            with open(CARDS_FILE, 'r', encoding='utf-8') as f:
                 cards = json.load(f)
             return {"cards": cards}
         except Exception as e:
@@ -245,8 +292,7 @@ def get_cards():
 @app.post("/api/cards")
 def save_cards(cards_data: dict):
     """保存 cards 到后端（从前端同步）"""
-    cards_file = "data/cards.json"
-    os.makedirs("data", exist_ok=True)
+    os.makedirs(DATA_PATH, exist_ok=True)
     
     try:
         cards = cards_data.get("cards", [])
@@ -260,7 +306,7 @@ def save_cards(cards_data: dict):
             }
             backend_cards.append(backend_card)
         
-        with open(cards_file, 'w', encoding='utf-8') as f:
+        with open(CARDS_FILE, 'w', encoding='utf-8') as f:
             json.dump(backend_cards, f, indent=2, ensure_ascii=False)
         
         # 重新加载 matcher service 的 cards
@@ -275,18 +321,16 @@ def save_cards(cards_data: dict):
 @app.get("/api/transcripts")
 def get_transcripts():
     """获取所有保存的 transcript 文件列表"""
-    transcripts_dir = "data/transcripts"
-    
-    if not os.path.exists(transcripts_dir):
+    if not os.path.exists(TRANSCRIPTS_PATH):
         return {"transcripts": []}
     
     try:
         transcript_list = []
-        files = sorted(os.listdir(transcripts_dir), reverse=True)  # 最新的在前
+        files = sorted(os.listdir(TRANSCRIPTS_PATH), reverse=True)  # 最新的在前
         
         for filename in files:
             if filename.endswith('.json'):
-                filepath = os.path.join(transcripts_dir, filename)
+                filepath = os.path.join(TRANSCRIPTS_PATH, filename)
                 try:
                     with open(filepath, 'r', encoding='utf-8') as f:
                         transcript_data = json.load(f)
@@ -327,3 +371,19 @@ def get_transcripts():
     except Exception as e:
         print(f"❌ Error listing transcripts: {e}")
         return {"transcripts": []}
+
+# ============================================
+# 主程序入口
+# ============================================
+if __name__ == "__main__":
+    import uvicorn
+    print("🚀 Starting RecallAI Backend Server...")
+    print(f"📍 Server will run on: http://localhost:8000")
+    print(f"📍 Health check: http://localhost:8000/health")
+    
+    uvicorn.run(
+        app, 
+        host="0.0.0.0", 
+        port=8000,
+        log_level="info"
+    )

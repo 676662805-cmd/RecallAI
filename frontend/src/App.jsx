@@ -5,11 +5,14 @@ import KnowledgeBasePage from './pages/KnowledgeBasePage'
 import TranscriptHistoryPage from './pages/TranscriptHistoryPage'
 import SwitchButton from './components/SwitchButton';
 import useSystemTheme from './hooks/useSystemTheme';
+import LoginPage from './components/LoginPage'
+import { useAuth } from './contexts/AuthContext'
 
-function App() {
+function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useSystemTheme();
+  const { logout } = useAuth();
   
   // Determine current page from URL
   const currentPage = location.pathname === '/knowledge' ? 'knowledge' 
@@ -26,6 +29,10 @@ function App() {
   const [transcript, setTranscript] = useState([]);
   // ✨ New: Anchor for auto-scroll
   const transcriptEndRef = useRef(null);
+  const transcriptContainerRef = useRef(null);
+  // ✨ New: Track if user manually scrolled
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const prevTranscriptLength = useRef(0);
   
   // ✨ New: Transcript history for storing past recordings
   const [transcriptHistory, setTranscriptHistory] = useState([]);
@@ -61,12 +68,24 @@ function App() {
     else if (page === 'transcriptHistory') navigate('/transcripts');
   };
 
-  // ✨ Auto-scroll logic: Scroll to bottom when transcript updates
+  // ✨ Auto-scroll logic: Only scroll if content overflows and user hasn't manually scrolled
   useEffect(() => {
-    if (currentPage === 'interview') {
-      transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (currentPage === 'interview' && transcriptContainerRef.current) {
+      const container = transcriptContainerRef.current;
+      
+      // Check if there's new content and container has scrollable content
+      if (transcript.length > prevTranscriptLength.current && !userHasScrolled) {
+        // Only scroll if content actually overflows the container AND user is near bottom
+        const isContentOverflowing = container.scrollHeight > container.clientHeight;
+        const isNearBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 50;
+        
+        if (isContentOverflowing && isNearBottom) {
+          transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+      prevTranscriptLength.current = transcript.length;
     }
-  }, [transcript, currentPage]);
+  }, [transcript, currentPage, userHasScrolled]);
 
   // 2. Core logic: Poll backend every 100ms
   useEffect(() => {
@@ -103,22 +122,32 @@ function App() {
         if (card) {
           if (activeCard?.id !== card.id) {
             console.log("Found new card!", card);
-            setShowCard(false);
-            setTimeout(() => {
-              // Transform backend card shape to the UI shape expected by InterviewCard
-              const uiCard = {
-                id: card.id,
-                title: card.topic || card.title || "",
-                // InterviewCard expects content as an array of lines
-                content: Array.isArray(card.content)
-                  ? card.content
-                  : (typeof card.content === 'string' ? card.content.split('\n') : []),
-                tags: Array.isArray(card.tags) ? card.tags : (card.tags ? [card.tags] : [])
-              };
+            
+            // Transform backend card shape to the UI shape expected by InterviewCard
+            const uiCard = {
+              id: card.id,
+              // 过滤掉 loading 状态的 topic
+              title: (card.topic && card.topic !== 'loading...') ? card.topic : (card.title || ""),
+              // InterviewCard expects content as an array of lines
+              content: Array.isArray(card.content)
+                ? card.content
+                : (typeof card.content === 'string' ? card.content.split('\n') : []),
+              tags: Array.isArray(card.tags) ? card.tags : (card.tags ? [card.tags] : [])
+            };
 
-              setActiveCard(uiCard);
-              setShowCard(true);
-            }, 50);
+            // 如果在Electron环境中，显示幽灵弹窗
+            if (window.electronAPI) {
+              window.electronAPI.showPopup(uiCard);
+            } else {
+              // 网页环境中的传统卡片显示
+              setShowCard(false);
+              setTimeout(() => {
+                setActiveCard(uiCard);
+                setShowCard(true);
+              }, 50);
+            }
+            
+            setActiveCard(uiCard);
           }
         } else {
           // No matching card found: don't auto-hide, stay as is
@@ -143,43 +172,63 @@ function App() {
 
   // Start backend listening
   const startInterview = async () => {
+    console.log('🚀 Attempting to start interview...');
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/start', { method: 'POST' });
+      const res = await fetch('http://127.0.0.1:8000/api/start', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      console.log('📥 Start response:', data);
+      
       if (res.ok) {
         setStatus('Startup command sent...');
         setIsRunning(true);
         setTranscript([]); // Clear frontend display on startup
+        setUserHasScrolled(false); // Reset scroll state
+        prevTranscriptLength.current = 0; // Reset transcript length counter
+        console.log('✅ Interview started successfully');
       } else {
         setStatus('Startup request failed');
+        console.error('❌ Start request failed:', res.status);
       }
     } catch (err) {
-      console.error('start error', err);
+      console.error('❌ Start error:', err);
       setStatus('Startup error, check backend');
     }
   };
 
   // Stop backend listening
   const stopInterview = async () => {
+    console.log('🛑 Attempting to stop interview...');
     try {
-      const res = await fetch('http://127.0.0.1:8000/api/stop', { method: 'POST' });
+      const res = await fetch('http://127.0.0.1:8000/api/stop', { 
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      console.log('📥 Stop response:', data);
+      
       if (res.ok) {
         setStatus('Backend listening stopped');
         setIsRunning(false);
+        console.log('✅ Interview stopped successfully');
         // Reload transcript history from backend after stopping
         try {
           const response = await fetch('http://127.0.0.1:8000/api/transcripts');
           if (response.ok) {
-            const data = await response.json();
-            setTranscriptHistory(data.transcripts || []);
+            const historyData = await response.json();
+            setTranscriptHistory(historyData.transcripts || []);
           }
         } catch (error) {
           console.error('Error reloading transcript history:', error);
         }
       } else {
         setStatus('Stop request failed');
+        console.error('❌ Stop request failed:', res.status);
       }
     } catch (err) {
-      console.error('stop error', err);
+      console.error('❌ Stop error:', err);
       setStatus('Stop error, check backend');
     }
   };
@@ -209,27 +258,31 @@ function App() {
       padding: '20px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
       maxWidth: '800px',
-      margin: '0 auto'
+      margin: '0 auto',
+      minHeight: '100vh'
     }}>
       <SwitchButton 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 
       />
       
-      <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '10px', textAlign: 'center' }}>RecallAI</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '10px', textAlign: 'center', color: 'white' }}>RecallAI</h1>
       
       {/* Status indicator */}
       <div style={{ 
         padding: '8px 16px', 
-        background: 'white', 
+        background: 'rgba(255, 255, 255, 0.1)', 
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         borderRadius: '12px', 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
-        color: '#666', 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)', 
+        color: '#e0e0e0', 
         fontSize: '14px', 
         display: 'flex', 
         alignItems: 'center', 
         gap: '8px',
-        marginBottom: '16px'
+        marginBottom: '16px',
+        border: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{
           width: '8px', 
@@ -240,8 +293,31 @@ function App() {
         {status}
       </div>
 
-      {/* Control buttons: Start / Stop */}
+      {/* Control buttons: Logout / Start / Stop */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <button
+          onClick={logout}
+          style={{
+            flex: 1,
+            padding: '10px 14px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(255, 69, 58, 0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: 'white',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          Logout
+        </button>
+        
         <button
           onClick={startInterview}
           disabled={isRunning}
@@ -249,14 +325,19 @@ function App() {
             flex: 1,
             padding: '10px 14px',
             borderRadius: '10px',
-            border: 'none',
-            background: isRunning ? '#e0e0e0' : '#007AFF',
-            color: isRunning ? '#999' : 'white',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: isRunning ? 'rgba(128, 128, 128, 0.3)' : 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: isRunning ? '#666' : 'white',
             fontWeight: '500',
             cursor: isRunning ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
           }}
+          onMouseEnter={e => !isRunning && (e.currentTarget.style.transform = 'scale(1.05)')}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
         >
           Start
         </button>
@@ -268,49 +349,69 @@ function App() {
             flex: 1,
             padding: '10px 14px',
             borderRadius: '10px',
-            border: 'none',
-            background: !isRunning ? '#e0e0e0' : '#FF3B30',
-            color: !isRunning ? '#999' : 'white',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: !isRunning ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 59, 48, 0.6)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: !isRunning ? '#666' : 'white',
             fontWeight: '500',
             cursor: !isRunning ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helveticaने", Arial, sans-serif'
           }}
+          onMouseEnter={e => isRunning && (e.currentTarget.style.transform = 'scale(1.05)')}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
         >
           Stop
         </button>
       </div>
 
       {/* ✨ Transcript area (dark background, simulates terminal/subtitle effect) */}
-      <div style={{
-        background: theme.isDark ? '#1c1c1e' : '#f5f5f7', 
+      <div 
+        ref={transcriptContainerRef}
+        onScroll={(e) => {
+          const container = e.target;
+          const isAtBottom = container.scrollTop + container.clientHeight >= container.scrollHeight - 10;
+          // If user scrolls to bottom, reset the scroll flag to allow auto-scroll again
+          if (isAtBottom) {
+            setUserHasScrolled(false);
+          } else {
+            // User scrolled away from bottom
+            setUserHasScrolled(true);
+          }
+        }}
+        style={{
+        background: 'rgba(28, 28, 30, 0.6)', 
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         borderRadius: '12px',
         padding: '18px',
         height: '600px',       // Fixed height, scroll beyond
         overflowY: 'auto',     
-        color: theme.isDark ? '#e0e0e0' : '#1d1d1f',
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        color: '#e0e0e0',
         fontSize: '15px',
         lineHeight: '1.5',
-        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
-        marginBottom: '20px',
-        border: theme.isDark ? '1px solid #333' : '1px solid #d1d1d6'
+        marginBottom: '20px'
       }}>
         {transcript.length === 0 ? (
-          <div style={{ color: theme.isDark ? '#555' : '#86868b', textAlign: 'center', marginTop: '80px' }}>
+          <div style={{ color: '#888', textAlign: 'center', marginTop: '80px' }}>
             No conversation history yet... (Click Start to begin)
           </div>
         ) : (
           transcript.map((item, index) => (
             <div key={index} style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
               <span style={{ 
-                color: theme.isDark ? '#666' : '#86868b', 
+                color: '#888', 
                 fontSize: '11px', 
                 minWidth: '40px',
                 fontFamily: 'monospace'
               }}>
                 {item.timestamp}
               </span>
-              <span style={{ color: theme.isDark ? '#ddd' : '#1d1d1f' }}>{item.text}</span>
+              <span style={{ color: '#ddd' }}>{item.text}</span>
             </div>
           ))
         )}
@@ -318,7 +419,7 @@ function App() {
         <div ref={transcriptEndRef} />
       </div>
 
-      <p style={{ color: '#86868b', fontSize: '12px', textAlign: 'center' }}>
+      <p style={{ color: '#999', fontSize: '12px', textAlign: 'center' }}>
         💡 Press Space to rewind to previous card
       </p>
 
@@ -352,7 +453,9 @@ function App() {
         )}
 
       </div>
-    );  // Main render with Routes
+    );
+
+  // Main render with Routes
   return (
     <Routes>
       <Route path="/" element={renderInterviewPage()} />
@@ -368,6 +471,34 @@ function App() {
       } />
     </Routes>
   );
+}
+
+function App() {
+  const { user, token, loading, login } = useAuth();
+  
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        🔄 Loading...
+      </div>
+    )
+  }
+  
+  // Show login page if not authenticated
+  if (!user || !token) {
+    return <LoginPage onLoginSuccess={login} />
+  }
+  
+  // Show main app when authenticated
+  return <MainApp />
 }
 
 export default App

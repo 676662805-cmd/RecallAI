@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+pydantic
+python-multipart
+SpeechRecognition
+pyaudio
+pyttsx3
+python-dotenv
+requests
+pyinstaller

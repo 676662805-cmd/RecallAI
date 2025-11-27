@@ -30,9 +30,22 @@ const InterviewCard = ({ data, isVisible }) => {
       </h3>
 
       {/* 内容 */}
-      <div style={{ color: '#424245', fontSize: '14px', lineHeight: '1.6' }}>
+      <div style={{ 
+        color: '#424245', 
+        fontSize: '14px', 
+        lineHeight: '1.6',
+        maxHeight: '120px',
+        overflow: 'hidden'
+      }}>
         {data.content.map((line, index) => (
-          <p key={index} style={{ margin: '0 0 8px 0' }}>{line}</p>
+          <p key={index} style={{ 
+            margin: '0 0 8px 0',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            display: '-webkit-box',
+            WebkitLineClamp: 5,
+            WebkitBoxOrient: 'vertical'
+          }}>{line}</p>
         ))}
       </div>
 
