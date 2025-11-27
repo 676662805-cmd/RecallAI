@@ -28,9 +28,9 @@ const useSystemTheme = () => {
     // 返回包含所有颜色变量的对象 (代码保持不变)
     return {
         isDark: isDarkMode,
-        bgColor: isDarkMode ? '#1d1d1f' : '#f5f5f7',
-        cardBg: isDarkMode ? '#2c2c2e' : 'white',
-        textColor: isDarkMode ? 'white' : '#1d1d1f',
+        bgColor: 'transparent', // 🔥 Use transparent to show body gradient background
+        cardBg: 'rgba(40, 40, 42, 0.8)', // Semi-transparent dark cards with blur
+        textColor: '#f5f5f7',
         inputBg: isDarkMode ? '#3a3a3c' : '#f9f9f9',
         inputTextColor: isDarkMode ? 'white' : '#1d1d1f',
         accentColor: isDarkMode ? '#0a84ff' : '#007AFF',

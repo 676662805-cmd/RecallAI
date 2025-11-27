@@ -255,27 +255,31 @@ function App() {
       padding: '20px',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
       maxWidth: '800px',
-      margin: '0 auto'
+      margin: '0 auto',
+      minHeight: '100vh'
     }}>
       <SwitchButton 
         currentPage={currentPage} 
         setCurrentPage={setCurrentPage} 
       />
       
-      <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '10px', textAlign: 'center' }}>RecallAI</h1>
+      <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '10px', textAlign: 'center', color: 'white' }}>RecallAI</h1>
       
       {/* Status indicator */}
       <div style={{ 
         padding: '8px 16px', 
-        background: 'white', 
+        background: 'rgba(255, 255, 255, 0.1)', 
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
         borderRadius: '12px', 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.05)', 
-        color: '#666', 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)', 
+        color: '#e0e0e0', 
         fontSize: '14px', 
         display: 'flex', 
         alignItems: 'center', 
         gap: '8px',
-        marginBottom: '16px'
+        marginBottom: '16px',
+        border: '1px solid rgba(255,255,255,0.1)'
       }}>
         <div style={{
           width: '8px', 
@@ -295,14 +299,19 @@ function App() {
             flex: 1,
             padding: '10px 14px',
             borderRadius: '10px',
-            border: 'none',
-            background: isRunning ? '#e0e0e0' : '#007AFF',
-            color: isRunning ? '#999' : 'white',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: isRunning ? 'rgba(128, 128, 128, 0.3)' : 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: isRunning ? '#666' : 'white',
             fontWeight: '500',
             cursor: isRunning ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
             fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
           }}
+          onMouseEnter={e => !isRunning && (e.currentTarget.style.transform = 'scale(1.05)')}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
         >
           Start
         </button>
@@ -314,14 +323,19 @@ function App() {
             flex: 1,
             padding: '10px 14px',
             borderRadius: '10px',
-            border: 'none',
-            background: !isRunning ? '#e0e0e0' : '#FF3B30',
-            color: !isRunning ? '#999' : 'white',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: !isRunning ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 59, 48, 0.6)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: !isRunning ? '#666' : 'white',
             fontWeight: '500',
             cursor: !isRunning ? 'not-allowed' : 'pointer',
             transition: 'all 0.2s',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helveticaने", Arial, sans-serif'
           }}
+          onMouseEnter={e => isRunning && (e.currentTarget.style.transform = 'scale(1.05)')}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
         >
           Stop
         </button>
@@ -342,34 +356,36 @@ function App() {
           }
         }}
         style={{
-        background: theme.isDark ? '#1c1c1e' : '#f5f5f7', 
+        background: 'rgba(28, 28, 30, 0.6)', 
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         borderRadius: '12px',
         padding: '18px',
         height: '600px',       // Fixed height, scroll beyond
         overflowY: 'auto',     
-        color: theme.isDark ? '#e0e0e0' : '#1d1d1f',
+        border: '1px solid rgba(255,255,255,0.1)',
+        boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+        color: '#e0e0e0',
         fontSize: '15px',
         lineHeight: '1.5',
-        boxShadow: theme.isDark ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'inset 0 2px 4px rgba(0,0,0,0.05)',
-        marginBottom: '20px',
-        border: theme.isDark ? '1px solid #333' : '1px solid #d1d1d6'
+        marginBottom: '20px'
       }}>
         {transcript.length === 0 ? (
-          <div style={{ color: theme.isDark ? '#555' : '#86868b', textAlign: 'center', marginTop: '80px' }}>
+          <div style={{ color: '#888', textAlign: 'center', marginTop: '80px' }}>
             No conversation history yet... (Click Start to begin)
           </div>
         ) : (
           transcript.map((item, index) => (
             <div key={index} style={{ marginBottom: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
               <span style={{ 
-                color: theme.isDark ? '#666' : '#86868b', 
+                color: '#888', 
                 fontSize: '11px', 
                 minWidth: '40px',
                 fontFamily: 'monospace'
               }}>
                 {item.timestamp}
               </span>
-              <span style={{ color: theme.isDark ? '#ddd' : '#1d1d1f' }}>{item.text}</span>
+              <span style={{ color: '#ddd' }}>{item.text}</span>
             </div>
           ))
         )}
@@ -377,7 +393,7 @@ function App() {
         <div ref={transcriptEndRef} />
       </div>
 
-      <p style={{ color: '#86868b', fontSize: '12px', textAlign: 'center' }}>
+      <p style={{ color: '#999', fontSize: '12px', textAlign: 'center' }}>
         💡 Press Space to rewind to previous card
       </p>
 

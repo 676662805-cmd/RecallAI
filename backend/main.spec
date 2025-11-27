@@ -9,7 +9,6 @@ a = Analysis(
     datas=[
         ('data/cards.json', 'data'),
         ('data/transcripts', 'data/transcripts'),
-        ('.env', '.'),  # 打包 .env 文件到根目录
     ],
     hiddenimports=[
         'uvicorn.logging',
