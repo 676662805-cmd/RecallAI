@@ -91,7 +91,7 @@ function createPopupWindow(cardData) {
   }
 
   const primaryDisplay = screen.getPrimaryDisplay();
-  const { width, height } = primaryDisplay.workAreaSize;
+  const { width } = primaryDisplay.workAreaSize;
 
   // Determine popup position
   let x, y;
