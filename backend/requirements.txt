@@ -6,5 +6,5 @@ SpeechRecognition
 pyaudio
 pyttsx3
 python-dotenv
-groq
+requests
 pyinstaller

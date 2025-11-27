@@ -5,11 +5,14 @@ import KnowledgeBasePage from './pages/KnowledgeBasePage'
 import TranscriptHistoryPage from './pages/TranscriptHistoryPage'
 import SwitchButton from './components/SwitchButton';
 import useSystemTheme from './hooks/useSystemTheme';
+import LoginPage from './components/LoginPage'
+import { useAuth } from './contexts/AuthContext'
 
-function App() {
+function MainApp() {
   const navigate = useNavigate();
   const location = useLocation();
   const theme = useSystemTheme();
+  const { logout } = useAuth();
   
   // Determine current page from URL
   const currentPage = location.pathname === '/knowledge' ? 'knowledge' 
@@ -290,8 +293,31 @@ function App() {
         {status}
       </div>
 
-      {/* Control buttons: Start / Stop */}
+      {/* Control buttons: Logout / Start / Stop */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+        <button
+          onClick={logout}
+          style={{
+            flex: 1,
+            padding: '10px 14px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(255, 69, 58, 0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: 'white',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+          }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        >
+          Logout
+        </button>
+        
         <button
           onClick={startInterview}
           disabled={isRunning}
@@ -427,7 +453,9 @@ function App() {
         )}
 
       </div>
-    );  // Main render with Routes
+    );
+
+  // Main render with Routes
   return (
     <Routes>
       <Route path="/" element={renderInterviewPage()} />
@@ -443,6 +471,34 @@ function App() {
       } />
     </Routes>
   );
+}
+
+function App() {
+  const { user, token, loading, login } = useAuth();
+  
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px',
+        color: '#666'
+      }}>
+        🔄 Loading...
+      </div>
+    )
+  }
+  
+  // Show login page if not authenticated
+  if (!user || !token) {
+    return <LoginPage onLoginSuccess={login} />
+  }
+  
+  // Show main app when authenticated
+  return <MainApp />
 }
 
 export default App

@@ -54,6 +54,9 @@ class GlobalState:
     # --- ✨ 新增：Transcript 记录 ---
     transcript_log = []      # 存所有的对话记录 [{time, text}, ...]
     start_time = 0           # 面试开始的时间戳
+    
+    # --- 🌐 云端化：用户 Token ---
+    user_token = None        # 用户的认证 Token，用于调用云端 API
 
 state = GlobalState()
 
@@ -193,6 +196,20 @@ def read_root(): return {"status": "ready"}
 
 @app.get("/health")
 def health_check(): return {"status": "healthy", "service": "RecallAI Backend"}
+
+@app.post("/api/set-token")
+def set_user_token(token_data: dict):
+    """接收并存储前端传来的用户 Token"""
+    token = token_data.get("token")
+    if not token:
+        return {"success": False, "error": "Token is required"}
+    
+    state.user_token = token
+    # 同时设置到 audio_service 和 match_service
+    audio_service.set_token(token)
+    match_service.set_token(token)
+    print(f"✅ User token received and stored (length: {len(token)})")
+    return {"success": True, "msg": "Token stored successfully"}
 
 @app.post("/api/start")
 def start_interview():
