@@ -206,21 +206,33 @@ async function startBackend() {
     }
   });
   
-  // 健康检查：等待3秒后检查后端是否成功启动
-  setTimeout(async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/health', { 
-        signal: AbortSignal.timeout(2000) 
-      });
-      if (response.ok) {
-        console.log('✅ Backend health check passed');
-      } else {
-        console.error('❌ Backend health check failed');
+  // 返回 Promise，等待后端就绪
+  return new Promise((resolve) => {
+    // 健康检查：轮询后端直到就绪（最多 10 秒）
+    let attempts = 0;
+    const maxAttempts = 20;
+    const checkInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/poll', { 
+          signal: AbortSignal.timeout(1000) 
+        });
+        if (response.ok) {
+          console.log('✅ Backend is ready');
+          clearInterval(checkInterval);
+          resolve(true);
+        }
+      } catch (err) {
+        if (attempts >= maxAttempts) {
+          console.error('❌ Backend failed to start after 10 seconds');
+          clearInterval(checkInterval);
+          resolve(false);
+        } else {
+          console.log(`⏳ Waiting for backend... (${attempts}/${maxAttempts})`);
+        }
       }
-    } catch (err) {
-      console.error('❌ Backend not responding to health check:', err.message);
-    }
-  }, 3000);
+    }, 500);
+  });
 }
 
 function createMainWindow() {
@@ -338,8 +350,11 @@ function createPopupWindow(cardData) {
   });
 }
 
-app.whenReady().then(() => {
-  startBackend();
+app.whenReady().then(async () => {
+  // 先启动后端，等待就绪
+  await startBackend();
+  
+  // 后端就绪后再创建前端窗口
   createMainWindow();
 
   app.on('activate', () => {

@@ -372,6 +372,51 @@ def get_transcripts():
         print(f"❌ Error listing transcripts: {e}")
         return {"transcripts": []}
 
+@app.get("/api/mic-device")
+def get_mic_device():
+    """获取当前麦克风设备设置"""
+    env_path = os.path.join(BASE_PATH, ".env")
+    try:
+        with open(env_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                if line.startswith('MIC_DEVICE_NAME='):
+                    device = line.split('=')[1].strip()
+                    return {"device": device}
+        return {"device": "default"}
+    except Exception as e:
+        print(f"❌ Error reading .env: {e}")
+        return {"device": "default"}
+
+@app.post("/api/mic-device")
+def set_mic_device(data: dict):
+    """设置麦克风设备 (default 或 CABLE)"""
+    device = data.get("device", "default")
+    if device not in ["default", "CABLE"]:
+        return {"success": False, "error": "Invalid device. Must be 'default' or 'CABLE'"}
+    
+    env_path = os.path.join(BASE_PATH, ".env")
+    try:
+        # 读取现有内容
+        with open(env_path, 'r', encoding='utf-8') as f:
+            lines = f.readlines()
+        
+        # 修改 MIC_DEVICE_NAME
+        with open(env_path, 'w', encoding='utf-8') as f:
+            for line in lines:
+                if line.startswith('MIC_DEVICE_NAME='):
+                    f.write(f'MIC_DEVICE_NAME={device}\n')
+                else:
+                    f.write(line)
+        
+        # 更新环境变量
+        os.environ['MIC_DEVICE_NAME'] = device
+        
+        print(f"✅ Microphone device changed to: {device}")
+        return {"success": True, "device": device}
+    except Exception as e:
+        print(f"❌ Error updating .env: {e}")
+        return {"success": False, "error": str(e)}
+
 # ============================================
 # 主程序入口
 # ============================================

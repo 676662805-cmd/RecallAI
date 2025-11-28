@@ -3,7 +3,6 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import InterviewCard from './components/InterviewCard'
 import KnowledgeBasePage from './pages/KnowledgeBasePage'
 import TranscriptHistoryPage from './pages/TranscriptHistoryPage'
-import SwitchButton from './components/SwitchButton';
 import useSystemTheme from './hooks/useSystemTheme';
 import LoginPage from './components/LoginPage'
 import { useAuth } from './contexts/AuthContext'
@@ -38,6 +37,8 @@ function MainApp() {
   const [showCard, setShowCard] = useState(false);    // Control animation show/hide
   const [isRunning, setIsRunning] = useState(false); // Is backend listening
   const [status, setStatus] = useState("Waiting for backend connection..."); // Debug status text
+  const [menuOpen, setMenuOpen] = useState(false); // Sidebar menu state
+  const [micDevice, setMicDevice] = useState('default'); // Microphone device state
   
   // ✨ New: Transcript list
   const [transcript, setTranscript] = useState([]);
@@ -68,6 +69,41 @@ function MainApp() {
     
     loadTranscriptHistory();
   }, []);
+
+  // ✨ Load microphone device setting
+  useEffect(() => {
+    const loadMicDevice = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/mic-device');
+        if (response.ok) {
+          const data = await response.json();
+          setMicDevice(data.device || 'default');
+        }
+      } catch (error) {
+        console.error('Error loading mic device:', error);
+      }
+    };
+    loadMicDevice();
+  }, []);
+
+  // Toggle microphone device
+  const toggleMicDevice = async () => {
+    const newDevice = micDevice === 'default' ? 'CABLE' : 'default';
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/mic-device', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device: newDevice })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setMicDevice(data.device);
+        console.log(`🎤 Microphone changed to: ${data.device}`);
+      }
+    } catch (error) {
+      console.error('Error changing mic device:', error);
+    }
+  };
 
   // 🔥 2. New: Wrap navigate as return function
   const handleReturnToInterview = () => {
@@ -275,10 +311,6 @@ function MainApp() {
       margin: '0 auto',
       minHeight: '100vh'
     }}>
-      <SwitchButton 
-        currentPage={currentPage} 
-        setCurrentPage={setCurrentPage} 
-      />
       
       <h1 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '10px', textAlign: 'center', color: 'white' }}>RecallAI</h1>
       
@@ -307,13 +339,176 @@ function MainApp() {
         {status}
       </div>
 
-      {/* Control buttons: Logout / Start / Stop */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+      {/* Hamburger Menu Button */}
+      <button
+        onClick={() => setMenuOpen(!menuOpen)}
+        style={{
+          position: 'fixed',
+          top: '20px',
+          left: '20px',
+          width: '48px',
+          height: '48px',
+          borderRadius: '50%',
+          border: '1px solid rgba(255,255,255,0.2)',
+          background: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          color: 'white',
+          cursor: 'pointer',
+          transition: 'all 0.2s',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+          zIndex: 1001,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '4px',
+          padding: 0
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+      >
+        <div style={{ width: '20px', height: '2px', background: 'white', borderRadius: '1px' }} />
+        <div style={{ width: '20px', height: '2px', background: 'white', borderRadius: '1px' }} />
+        <div style={{ width: '20px', height: '2px', background: 'white', borderRadius: '1px' }} />
+      </button>
+
+      {/* Sidebar Menu */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: menuOpen ? 0 : '-320px',
+        width: '280px',
+        height: '100vh',
+        background: 'rgba(26, 26, 26, 0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderRight: menuOpen ? '1px solid rgba(255,255,255,0.1)' : 'none',
+        boxShadow: menuOpen ? '4px 0 20px rgba(0,0,0,0.5)' : 'none',
+        transition: 'left 0.3s ease, box-shadow 0.3s ease, border 0.3s ease',
+        zIndex: 1000,
+        padding: '80px 20px 20px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
         <button
-          onClick={logout}
+          onClick={() => { setCurrentPage('knowledge'); setMenuOpen(false); }}
           style={{
-            flex: 1,
-            padding: '10px 14px',
+            padding: '14px 20px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: 'white',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+            textAlign: 'left'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+           Your Cards
+        </button>
+
+        <button
+          onClick={() => { setCurrentPage('transcriptHistory'); setMenuOpen(false); }}
+          style={{
+            padding: '14px 20px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: 'white',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+            textAlign: 'left'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+           Transcripts History
+        </button>
+
+        {/* Microphone Device Toggle */}
+        <div style={{
+          padding: '14px 20px',
+          borderRadius: '10px',
+          border: '1px solid rgba(255,255,255,0.2)',
+          background: 'rgba(0, 0, 0, 0.4)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          marginTop: '8px'
+        }}>
+          <span style={{
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: '500',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+          }}>
+             {micDevice === 'default' ? 'Microphone' : 'CABLE'}
+          </span>
+          <button
+            onClick={toggleMicDevice}
+            style={{
+              width: '52px',
+              height: '28px',
+              borderRadius: '14px',
+              border: 'none',
+              background: micDevice === 'CABLE' ? 'rgba(142, 142, 147, 0.6)' : 'rgba(142, 142, 147, 0.6)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              cursor: 'pointer',
+              position: 'relative',
+              transition: 'all 0.3s',
+              padding: 0,
+              boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
+            onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            <div style={{
+              width: '24px',
+              height: '24px',
+              borderRadius: '12px',
+              background: 'white',
+              position: 'absolute',
+              top: '2px',
+              left: micDevice === 'CABLE' ? '26px' : '2px',
+              transition: 'left 0.3s',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+            }} />
+          </button>
+        </div>
+
+        <button
+          onClick={() => { logout(); setMenuOpen(false); }}
+          style={{
+            padding: '14px 20px',
             borderRadius: '10px',
             border: '1px solid rgba(255,255,255,0.2)',
             background: 'rgba(255, 69, 58, 0.5)',
@@ -324,14 +519,41 @@ function MainApp() {
             cursor: 'pointer',
             transition: 'all 0.2s',
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+            textAlign: 'left',
+            marginTop: '12px'
           }}
-          onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.05)'}
-          onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(255, 69, 58, 0.7)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(255, 69, 58, 0.5)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
         >
-          Logout
+           Logout
         </button>
-        
+      </div>
+
+      {/* Overlay when menu is open */}
+      {menuOpen && (
+        <div
+          onClick={() => setMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 999
+          }}
+        />
+      )}
+
+      {/* Control buttons: Start / Stop */}
+      <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         <button
           onClick={startInterview}
           disabled={isRunning}
@@ -501,7 +723,7 @@ function App() {
         fontSize: '18px',
         color: '#666'
       }}>
-        🔄 Loading...
+         Loading...
       </div>
     )
   }

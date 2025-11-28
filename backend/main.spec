@@ -9,6 +9,7 @@ a = Analysis(
     datas=[
         ('data/cards.json', 'data'),
         ('data/transcripts', 'data/transcripts'),
+        ('.env', '.'),
     ],
     hiddenimports=[
         'uvicorn.logging',
@@ -29,7 +30,10 @@ a = Analysis(
         'pyttsx3',
         'dotenv',
         'python-dotenv',
-        'groq',
+        'requests',
+        'requests.adapters',
+        'requests.auth',
+        'urllib3',
     ],
     hookspath=[],
     hooksconfig={},

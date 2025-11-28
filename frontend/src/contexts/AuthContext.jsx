@@ -52,22 +52,31 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const sendTokenToBackend = async (token) => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/api/set-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      })
-      
-      if (response.ok) {
-        console.log('✅ Token sent to backend')
-      } else {
-        console.error('❌ Failed to send token to backend')
+  const sendTokenToBackend = async (token, retries = 5) => {
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/set-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        })
+        
+        if (response.ok) {
+          console.log('✅ Token sent to backend')
+          return true
+        } else {
+          console.error('❌ Failed to send token to backend')
+        }
+      } catch (error) {
+        console.error(`❌ Error sending token to backend (attempt ${i + 1}/${retries}):`, error.message)
+        // 如果不是最后一次尝试，等待后重试
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000)) // 等待 1 秒
+        }
       }
-    } catch (error) {
-      console.error('❌ Error sending token to backend:', error)
     }
+    console.error('❌ Failed to send token after all retries')
+    return false
   }
 
   const login = async (token, user) => {

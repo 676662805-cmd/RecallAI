@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import CardEditorModal from '../components/CardEditorModal'; 
 import useSystemTheme from '../hooks/useSystemTheme';
 import NewCategoryModal from '../components/NewCategoryModal';
+import RenameModal from '../components/RenameModal';
 
 // --- Data definitions (must be outside functions to avoid recreation) ---
 const initialCategories = [];
@@ -11,6 +12,8 @@ const initialMockCards = [];
 // External component 1: Sidebar
 const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNewCategoryModalOpen, handleReturnClick, onDeleteCategory, onRenameCategory }) => {
     const [menuOpen, setMenuOpen] = useState(null);
+    const [renameModalOpen, setRenameModalOpen] = useState(false);
+    const [renamingCategory, setRenamingCategory] = useState(null);
 
     const handleMenuClick = (e, catId) => {
         e.stopPropagation();
@@ -22,11 +25,15 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
     };
 
     const handleRename = (catId, currentName) => {
-        const newName = window.prompt('Enter new category name:', currentName);
-        if (newName && newName.trim() && newName.trim() !== currentName) {
-            onRenameCategory(catId, newName.trim());
-        }
+        setRenamingCategory({ id: catId, name: currentName });
+        setRenameModalOpen(true);
         setMenuOpen(null);
+    };
+
+    const confirmRename = (newName) => {
+        if (renamingCategory) {
+            onRenameCategory(renamingCategory.id, newName);
+        }
     };
 
     const handleDelete = (catId) => {
@@ -51,6 +58,14 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
     }, [menuOpen]);
 
     return (
+        <>
+        <RenameModal
+            isOpen={renameModalOpen}
+            onClose={() => setRenameModalOpen(false)}
+            onConfirm={confirmRename}
+            currentName={renamingCategory?.name || ''}
+            title="Rename Category"
+        />
         <div style={{
             width: '280px',
             minWidth: '280px',
@@ -297,6 +312,7 @@ const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNe
                 </button>
             </div>
         </div>
+        </>
     );
 };
 
@@ -539,16 +555,29 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
                     if (response.ok) {
                         const data = await response.json();
                         if (data.cards && data.cards.length > 0) {
+                            // 确保 'Interview' 分类存在
+                            const interviewCategory = { id: 'interview', name: 'Interview' };
+                            setCategories(prevCats => {
+                                const hasInterview = prevCats.some(cat => cat.id === 'interview');
+                                if (!hasInterview) {
+                                    return [interviewCategory, ...prevCats];
+                                }
+                                return prevCats;
+                            });
+                            
                             // 转换后端格式到前端格式
                             const frontendCards = data.cards.map(card => ({
                                 id: card.id,
                                 topic: card.topic,
-                                components: card.content.split('\n'),
+                                components: card.content.split('\n').filter(line => line.trim()),
                                 category: 'interview',
                                 isFavorite: false
                             }));
                             setCards(frontendCards);
-                            console.log('✅ Loaded cards from backend');
+                            
+                            // 设置 activeCategory 为 'interview' 以显示卡片
+                            setActiveCategory('interview');
+                            console.log('✅ Loaded', frontendCards.length, 'cards from backend');
                         }
                     }
                 } catch (err) {

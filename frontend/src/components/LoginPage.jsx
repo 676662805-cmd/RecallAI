@@ -50,13 +50,31 @@ export default function LoginPage({ onLoginSuccess }) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          // 如果邮箱验证被禁用，用户会自动确认
+          emailRedirectTo: window.location.origin,
+        }
       })
 
       if (error) throw error
 
       console.log('✅ Signup successful:', data.user?.email)
-      alert('Account created! Please check your email to verify your account.')
-      setIsLogin(true) // Switch to login view
+      
+      // 检查用户是否需要验证邮箱
+      if (data.user && !data.user.confirmed_at) {
+        alert('Account created! Please check your email to verify your account.')
+        setIsLogin(true) // Switch to login view
+      } else {
+        // 如果邮箱验证已禁用，直接登录
+        console.log('🔑 Auto-login after signup')
+        const token = data.session?.access_token
+        if (token) {
+          onLoginSuccess(token, data.user)
+        } else {
+          alert('Account created! You can now login.')
+          setIsLogin(true)
+        }
+      }
       
     } catch (error) {
       console.error('❌ Signup error:', error.message)
