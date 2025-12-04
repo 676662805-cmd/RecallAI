@@ -181,7 +181,8 @@ async function startBackend() {
     return;
   }
 
-  if (process.env.NODE_ENV === 'development') {
+  // ✨ 修复：使用 app.isPackaged 判断是否为打包环境
+  if (!app.isPackaged) {
     console.log('Development mode: Backend should be started via npm run dev');
     return;
   }
@@ -342,7 +343,8 @@ function createMainWindow() {
     console.log('🪟 Main window closing...');
   });
 
-  if (process.env.NODE_ENV === 'development') {
+  // ✨ 使用 app.isPackaged 判断环境
+  if (!app.isPackaged) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
