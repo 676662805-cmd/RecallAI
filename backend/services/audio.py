@@ -110,17 +110,25 @@ class AudioService:
                 return None
             
             try:
+                import time
+                start_time = time.time()
+                
                 # 准备文件和请求头
                 files = {'file': ('audio.wav', audio_file, 'audio/wav')}
                 headers = {'Authorization': f'Bearer {self.user_token}'}
                 
-                # 发送请求到 Render 云端
+                print(f"📤 Sending audio to cloud API ({RENDER_URL})...")
+                
+                # 发送请求到 Render 云端 (增加超时时间到60秒，适应国际网络延迟)
                 response = requests.post(
                     f"{RENDER_URL}/v1/proxy/transcribe",
                     files=files,
                     headers=headers,
-                    timeout=30
+                    timeout=60  # ✨ 增加到60秒，适应中国等地区的网络延迟
                 )
+                
+                elapsed = time.time() - start_time
+                print(f"⏱️ Cloud API response time: {elapsed:.2f}s")
                 
                 if response.status_code != 200:
                     if _global_state is not None:

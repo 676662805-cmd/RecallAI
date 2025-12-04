@@ -1,7 +1,7 @@
 {
   "name": "recallai",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "RecallAI - AI Interview Assistant",
   "author": "RecallAI Team",
   "main": "electron.js",
