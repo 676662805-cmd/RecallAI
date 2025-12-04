@@ -53,6 +53,13 @@ class AudioService:
     def set_token(self, token: str):
         """设置用户 Token，用于云端 API 鉴权"""
         self.user_token = token
+    
+    def reload_device(self):
+        """重新读取设备配置（用于切换麦克风/CABLE）"""
+        print("🔄 Reloading audio device configuration...")
+        self.target_device_index = self._find_device_index()
+        device_status = f"Index {self.target_device_index}" if self.target_device_index is not None else "Default Mic"
+        print(f"✅ Audio device updated to: [{device_status}]")
         
     def _find_device_index(self):
         """

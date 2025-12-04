@@ -18,41 +18,67 @@ let popupWindow = null;
 let popupPosition = null;
 let backendProcess = null;
 let isQuitting = false;
+let isCleaningUp = false; // ✨ 防止重复清理
+
+// 📝 日志文件路径
+const logPath = path.join(app.getPath('userData'), 'update.log');
+
+// 日志函数
+function log(message) {
+  const timestamp = new Date().toISOString();
+  const logMessage = `[${timestamp}] ${message}\n`;
+  console.log(message);
+  try {
+    fs.appendFileSync(logPath, logMessage);
+  } catch (err) {
+    console.error('Failed to write log:', err);
+  }
+}
 
 // ✨ 自动更新配置
 autoUpdater.autoDownload = false; // 不自动下载，先询问用户
 autoUpdater.autoInstallOnAppQuit = true; // 退出时自动安装
+autoUpdater.logger = {
+  info: (msg) => log(`ℹ️ ${msg}`),
+  warn: (msg) => log(`⚠️ ${msg}`),
+  error: (msg) => log(`❌ ${msg}`)
+};
+
+log(`📁 Log file: ${logPath}`);
+log(`📦 App version: ${app.getVersion()}`);
 
 // 自动更新事件监听
 autoUpdater.on('checking-for-update', () => {
-  console.log('🔍 Checking for updates...');
+  log('🔍 Checking for updates...');
 });
 
 autoUpdater.on('update-available', (info) => {
-  console.log('✨ Update available:', info.version);
+  log(`✨ Update available: ${info.version}`);
+  log(`📅 Release date: ${info.releaseDate}`);
   if (mainWindow) {
     mainWindow.webContents.send('update-available', info);
   }
 });
 
 autoUpdater.on('update-not-available', (info) => {
-  console.log('✅ App is up to date:', info.version);
+  log(`✅ App is up to date: ${info.version}`);
 });
 
 autoUpdater.on('error', (err) => {
-  console.error('❌ Update error:', err);
+  log(`❌ Update error: ${err.message}`);
+  log(`Stack: ${err.stack}`);
 });
 
 autoUpdater.on('download-progress', (progressObj) => {
-  const logMessage = `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`;
-  console.log(logMessage);
+  const logMessage = `📥 Download progress: ${progressObj.percent.toFixed(2)}% (${(progressObj.bytesPerSecond / 1024 / 1024).toFixed(2)} MB/s)`;
+  log(logMessage);
   if (mainWindow) {
     mainWindow.webContents.send('download-progress', progressObj);
   }
 });
 
 autoUpdater.on('update-downloaded', (info) => {
-  console.log('✅ Update downloaded:', info.version);
+  log(`✅ Update downloaded: ${info.version}`);
   if (mainWindow) {
     mainWindow.webContents.send('update-downloaded', info);
   }
@@ -311,6 +337,11 @@ function createMainWindow() {
   // 完全移除菜单栏
   mainWindow.setMenuBarVisibility(false);
 
+  // ✨ 监听窗口关闭事件，确保触发应用退出流程
+  mainWindow.on('close', () => {
+    console.log('🪟 Main window closing...');
+  });
+
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
@@ -436,6 +467,13 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', async (e) => {
   console.log('🚪 Application before-quit event');
+  
+  // ✨ 防止重复清理
+  if (isCleaningUp) {
+    console.log('⏳ Already cleaning up, skipping...');
+    return;
+  }
+  
   isQuitting = true;
   
   if (backendProcess && !backendProcess.killed) {
@@ -443,6 +481,7 @@ app.on('before-quit', async (e) => {
     
     // 阻止退出，等待后端关闭
     e.preventDefault();
+    isCleaningUp = true; // ✨ 标记正在清理
     
     try {
       // 先尝试正常关闭
@@ -453,16 +492,23 @@ app.on('before-quit', async (e) => {
         const timeout = setTimeout(() => {
           if (backendProcess && !backendProcess.killed) {
             console.log('⚠️ Force killing backend process...');
-            backendProcess.kill('SIGKILL');
+            try {
+              backendProcess.kill('SIGKILL');
+            } catch (err) {
+              console.error('Error force killing:', err);
+            }
           }
           resolve();
-        }, 1000);
+        }, 2000); // ✨ 增加到2秒，给后端更多时间优雅关闭
         
         if (backendProcess) {
           backendProcess.on('exit', () => {
             clearTimeout(timeout);
             resolve();
           });
+        } else {
+          clearTimeout(timeout);
+          resolve();
         }
       });
       
@@ -474,29 +520,40 @@ app.on('before-quit', async (e) => {
       console.log('✅ Backend process cleaned up');
       
       // 继续退出
+      isCleaningUp = false;
       app.exit(0);
     } catch (err) {
       console.error('❌ Error killing backend process:', err);
       backendProcess = null;
+      isCleaningUp = false;
       app.exit(0);
     }
+  } else {
+    console.log('✅ No backend process to clean up');
   }
 });
 
 app.on('will-quit', async () => {
   console.log('🚪 Application will-quit event');
-  // 确保后端进程被清理
+  
+  // 确保后端进程被清理（最后的保险）
   if (backendProcess && !backendProcess.killed) {
+    console.log('⚠️ will-quit: Backend still running, force killing...');
     try {
       backendProcess.kill('SIGKILL');
+      backendProcess = null;
     } catch (err) {
       console.error('Error in will-quit:', err);
     }
-    backendProcess = null;
   }
   
   // 最后的保险：清理所有占用 8000 端口的进程
-  await killProcessOnPort(8000);
+  try {
+    await killProcessOnPort(8000);
+    console.log('✅ Final cleanup: Port 8000 cleared');
+  } catch (err) {
+    console.error('Error clearing port 8000:', err);
+  }
 });
 
 app.on('window-all-closed', () => {
@@ -519,13 +576,21 @@ ipcMain.on('close-popup', () => {
 
 // ✨ 自动更新 IPC 处理
 ipcMain.on('check-for-updates', () => {
+  log('🔄 Manual check for updates triggered');
   autoUpdater.checkForUpdates();
 });
 
 ipcMain.on('download-update', () => {
+  log('📥 Download update triggered');
   autoUpdater.downloadUpdate();
 });
 
 ipcMain.on('install-update', () => {
+  log('🔧 Install update triggered');
   autoUpdater.quitAndInstall();
+});
+
+// 获取日志文件路径
+ipcMain.handle('get-log-path', () => {
+  return logPath;
 });

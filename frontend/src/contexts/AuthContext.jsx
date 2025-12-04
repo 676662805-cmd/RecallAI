@@ -41,7 +41,8 @@ export const AuthProvider = ({ children }) => {
       setUser(session?.user ?? null)
       setToken(session?.access_token ?? null)
       
-      // 如果有 session，发送 token 到后端
+      // ✨ 总是发送 token 到后端（即使是从 localStorage 恢复的 session）
+      // 因为后端可能是新启动的进程，内存中没有 token
       if (session?.access_token) {
         await sendTokenToBackend(session.access_token)
       }
@@ -52,7 +53,7 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const sendTokenToBackend = async (token, retries = 5) => {
+  const sendTokenToBackend = async (token, retries = 10) => {
     for (let i = 0; i < retries; i++) {
       try {
         const response = await fetch('http://127.0.0.1:8000/api/set-token', {
@@ -62,20 +63,22 @@ export const AuthProvider = ({ children }) => {
         })
         
         if (response.ok) {
-          console.log('✅ Token sent to backend')
+          console.log('✅ Token sent to backend successfully')
           return true
         } else {
-          console.error('❌ Failed to send token to backend')
+          console.warn(`⚠️ Failed to send token (status: ${response.status})`)
         }
       } catch (error) {
-        console.error(`❌ Error sending token to backend (attempt ${i + 1}/${retries}):`, error.message)
-        // 如果不是最后一次尝试，等待后重试
+        console.warn(`⚠️ Backend not ready yet (attempt ${i + 1}/${retries}):`, error.message)
+        // 如果不是最后一次尝试，等待后重试（使用指数退避）
         if (i < retries - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000)) // 等待 1 秒
+          const delay = Math.min(1000 * Math.pow(1.5, i), 5000) // 1s, 1.5s, 2.25s, ... 最多5s
+          await new Promise(resolve => setTimeout(resolve, delay))
         }
       }
     }
-    console.error('❌ Failed to send token after all retries')
+    console.error('❌ Failed to send token to backend after all retries')
+    console.error('   Please ensure the backend is running and try restarting the app')
     return false
   }
 

@@ -455,6 +455,9 @@ def set_mic_device(data: dict):
         # 更新环境变量
         os.environ['MIC_DEVICE_NAME'] = device
         
+        # ✨ 重要：重新加载 audio_service 的设备配置
+        audio_service.reload_device()
+        
         print(f"✅ Microphone device changed to: {device}")
         return {"success": True, "device": device}
     except Exception as e:
