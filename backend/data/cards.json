@@ -1,137 +1,27 @@
 [
   {
-    "id": "card_34",
-    "topic": "Why Amercian Express",
-    "content": "I’m drawn to the intersection of data, processes, and risk management.\nAt American Express National Bank, control management directly impacts the company’s financial stability and reputation — it’s where analytical thinking meets real-world responsibility.\nWith my background in data analytics and quality-management projects, I’m excited to learn how Amex integrates governance, technology, and compliance to build a stronger control environment."
-  },
-  {
-    "id": "card_33",
-    "topic": "Problem Solving Example",
-    "content": "One issue we faced was data inconsistency between the client’s Excel trackers and the new QMS platform.\nI investigated the source, found that naming conventions differed across departments, and proposed a validation rule in the system to flag mismatches automatically.\nResult: The solution reduced error reports by 40% in the next cycle."
-  },
-  {
-    "id": "card_32",
-    "topic": "How do you deal with conflicts?/Communication",
-    "content": "Before this project, I had no prior experience in quality management systems.\nI quickly studied ISO 13485 basics and our SaaS platform’s configuration logic through online materials and shadowing a senior consultant.\nWithin two weeks, I was confident enough to handle the system flow mapping independently.\nResult: My manager later asked me to train two new interns on the same topic."
-  },
-  {
-    "id": "card_31",
-    "topic": "Adaptability Learning example",
-    "content": "Before this project, I had no prior experience in quality management systems.\nI quickly studied ISO 13485 basics and our SaaS platform’s configuration logic through online materials and shadowing a senior consultant.\nWithin two weeks, I was confident enough to handle the system flow mapping independently.\nResult: My manager later asked me to train two new interns on the same topic."
-  },
-  {
-    "id": "card_30",
-    "topic": "What is WACC",
-    "content": "Weighted Average Cost of Capital. It represents the blended cost to the company of borrowing money (debt) and raising funds from investors (equity)"
-  },
-  {
-    "id": "card_29",
-    "topic": "Why would two companies with identical financials be acquired at different multiples?",
-    "content": "One might have better growth prospects, valuable intellectual property, a strategic geographic location, or be the subject of a bidding war."
-  },
-  {
-    "id": "card_28",
-    "topic": "Which is more expensive: Cost of Debt or Cost of Equity?",
-    "content": "Cost of Equity is higher. Debt is less risky (senior to equity in bankruptcy) and interest payments are tax-deductible (tax shield). Equity investors demand higher returns for higher risk."
-  },
-  {
-    "id": "card_27",
-    "topic": "What is Beta?",
-    "content": "Beta measures the volatility of a stock relative to the overall market. Beta = 1 means it moves with the market; >1 is more volatile; <1 is less volatile."
-  },
-  {
-    "id": "card_26",
-    "topic": "Why would one company acquire another?",
-    "content": "To achieve synergies (cost savings or revenue growth), gain market share, acquire new technology/IP, or for vertical integration."
-  },
-  {
-    "id": "card_24",
-    "topic": "What is the difference between Enterprise Value and Equity Value?",
-    "content": "Enterprise Value is the value of the firm to all investors (Debt + Equity). Equity Value is the value available only to shareholders. EV = Equity Value + Debt + Preferred Stock + Minority Interest - Cash."
-  },
-  {
-    "id": "card_23",
-    "topic": "Walk me through a DCF",
-    "content": "Weighted Average Cost of Capital. It represents the blended cost to the company of borrowing money (debt) and raising funds from investors (equity)."
-  },
-  {
-    "id": "card_22",
-    "topic": "Which valuation method usually gives the highest value?",
-    "content": "Precedent Transactions. This is because the buyer typically pays a \"Control Premium\" to acquire the company."
-  },
-  {
-    "id": "card_21",
-    "topic": "What are the main ways to value a company?",
-    "content": "Comparable Companies Analysis (Comps), Precedent Transactions, and Discounted Cash Flow (DCF) analysis."
-  },
-  {
-    "id": "card_20",
-    "topic": ":What is Working Capital",
-    "content": "Current Assets minus Current Liabilities. It represents the operating liquidity available to a business. Positive working capital implies the company can pay off its short-term liabilities."
-  },
-  {
-    "id": "card_19",
-    "topic": "What is EBITDA?",
-    "content": "Earnings Before Interest, Taxes, Depreciation, and Amortization. It is used as a proxy for a company's core operational profitability and cash flow potential, ignoring capital structure and tax jurisdictions."
-  },
-  {
-    "id": "card_18",
-    "topic": "If Depreciation increases by $10, how does that affect the statements?",
-    "content": "A: Income Statement: Net Income down by $6. Cash Flow Statement: Net Income down $6 but add back $10 depreciation, so Cash is up by $4. Balance Sheet: Cash up $4, PP&E down $10, Retained Earnings down $6. It balances."
-  },
-  {
-    "id": "card_17",
-    "topic": "How are the three statements linked?",
-    "content": "Net Income from the Income Statement flows into the Cash Flow Statement (top line) and the Balance Sheet (Retained Earnings). The ending Cash balance on the CFS flows into the Cash line on the Balance Sheet."
-  },
-  {
-    "id": "card_16",
-    "topic": "What are the three financial statements?",
-    "content": "The Income Statement, Balance Sheet, and Cash Flow Statement."
-  },
-  {
-    "id": "card_15",
-    "topic": "How do you handle multiple tasks under high pressure?",
-    "content": "I use a strict priority list, communicate status early and often, and am not afraid to ask for help to ensure the team meets the deadline with high-quality work."
-  },
-  {
-    "id": "card_14",
-    "topic": "Tell me about a time you showed leadership.",
-    "content": "Use the STAR method (Situation, Task, Action, Result). Focus on a specific conflict or challenge, how you facilitated a solution, and the positive outcome."
-  },
-  {
-    "id": "card_13",
-    "topic": "What is your greatest weakness?",
-    "content": "A: Pick a real weakness (e.g., sometimes getting too lost in details), but emphasize how you are actively fixing it (e.g., setting strict time limits and focusing on the big picture)."
-  },
-  {
-    "id": "card_12",
-    "topic": "Why Investment Banking",
-    "content": "I want the steep learning curve, I thrive in fast-paced/high-pressure environments, and I want exposure to high-level strategic decision-making early in my career."
-  },
-  {
-    "id": "card_11",
-    "topic": "Walk me through your resume",
-    "content": "Start chronologically: Background -> University/Internships -> Why Investment Banking -> Why this firm/now. Focus on quantifiable achievements relevant to the role."
+    "id": "card_5",
+    "topic": "Where do you see yourself in 5 years",
+    "content": "1. [Short-term]: Master the technologies used in this team and become a core contributor.\n2. [Long-term]: I aim to grow into a [e.g., Senior Engineer / Tech Lead] role.\n3. [Alignment]: I want to lead projects that drive significant impact for [Company Name], specifically in [Specific Domain]."
   },
   {
     "id": "card_4",
-    "topic": "What is operational risk, and why is it important in banking?",
-    "content": "Operational risk refers to losses resulting from failed processes, systems, or human errors — rather than market or credit risk. In banking, it’s critical because even small process failures can lead to large financial or reputational losses.\nFor instance, a data entry error in a loan system or an untested change in a transaction process can cause compliance breaches. Effective control management reduces those risks and keeps customer trust."
+    "topic": "Why do you want to work here? / Why this company?",
+    "content": "1. [Company Mission]: I admire your commitment to [e.g., sustainability / innovation in AI]. It aligns with my personal values. 2. [Product]: I am a huge fan of [Product Name] and I have some ideas on how to improve its [Specific Feature]. 3. [Culture]: I read about your [e.g., collaborative / fast-paced] culture, which fits my working style perfectly."
   },
   {
     "id": "card_3",
-    "topic": "What does “Control Management” mean to you? Answer Template：",
-    "content": "Control Management means ensuring that business processes operate effectively and within risk and compliance standards. It’s about identifying where things could go wrong, designing controls to prevent or detect those issues, and continuously testing whether those controls work.\nFor example, in my previous project at IQVIA, we built a quality management workflow to reduce manual data errors. I helped define checkpoints and approval steps — that’s essentially applying control management principles: preventing risk before it happens."
+    "topic": "Tell me about a challenge you faced / STAR Method",
+    "content": "Situation: We faced a [e.g., 50% drop in performance / critical bug] right before the deadline.\\nTask: My responsibility was to [e.g., optimize the database queries].\\nAction: I used [Tool/Method, e.g., SQL indexing and caching]. I also coordinated with the frontend team to reduce API calls.\\nResult: We improved performance by [X]% and launched on time."
   },
   {
     "id": "card_2",
-    "topic": "asd",
-    "content": "kuhaydfkjahsdgfkjahsdgfkjashdgfakjbxzcjhkvbakjhsdbvf\nasdkjfuhygasdkhjfgasdjhklfgaskjdhfgakjshdgfmb czxjkvosadhugfoiawluegfkuiasdhgbfkhjasdfasd\nasdfkjhgasdkhjfavsdhjkfgvalksiudgfoawuhvbkjhasvgxcoifuhasdf\nasdlkjfhggaoiwsleuhvbfjakhldgfiopuagerbfawef"
+    "topic": "What is your greatest weakness?",
+    "content": "Strategy: Real weakness + Improvement Plan (Don't say 'I work too hard')\\n\\n1. [Weakness]: Sometimes I struggle with [e.g., public speaking / delegating tasks / perfectionism].\\n2. [Action]: To improve, I have started [e.g., joining Toastmasters / using Trello for time management].\\n3. [Result]: I have seen significant improvement in [Specific Area] and I am continuing to work on it actively."
   },
   {
     "id": "card_1",
-    "topic": "abc",
-    "content": "abasdkj\nasdjhkg\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd\nasd"
+    "topic": "Tell me about yourself / Self Introduction",
+    "content": "Structure: Present -> Past -> Future\n1. [Present]: I am currently a [Your Major] student at [Your University], specializing in [Your Field, e.g., Full Stack Development].\n2. [Past]: Previously, I interned at [Company/Project], where I built [Key Achievement, e.g., a high-concurrency system using Redis].\n3. [Future]: I am passionate about [Company's Industry] and I see this role as a perfect opportunity to apply my skills in [Skill 1] and [Skill 2] to solve real-world problems."
   }
 ]

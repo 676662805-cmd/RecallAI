@@ -298,6 +298,7 @@ function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, 'public/icon.png'),
     autoHideMenuBar: true, // 隐藏菜单栏（按 Alt 可显示）
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
