@@ -69,6 +69,10 @@
       {
         "from": "../backend/data",
         "to": "backend/data"
+      },
+      {
+        "from": "../backend/.env",
+        "to": "backend/.env"
       }
     ],
     "win": {
