@@ -115,6 +115,17 @@ export default function LoginPage({ onLoginSuccess }) {
               placeholder="your@email.com"
               required
             />
+            {!isLogin && (
+              <p style={{
+                fontSize: '12px',
+                color: '#FFA500',
+                marginTop: '6px',
+                marginBottom: '0',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+              }}>
+                Do not use .edu email addresses. Gmail is recommended.
+              </p>
+            )}
           </div>
 
           <div className="form-group">

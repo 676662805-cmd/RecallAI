@@ -39,6 +39,14 @@ function MainApp() {
   const [status, setStatus] = useState("Waiting for backend connection..."); // Debug status text
   const [menuOpen, setMenuOpen] = useState(false); // Sidebar menu state
   const [micDevice, setMicDevice] = useState('default'); // Microphone device state
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false); // Feedback modal state
+  const [userGuideModalOpen, setUserGuideModalOpen] = useState(false); // User Guide modal state
+  
+  // ✨ 自动更新状态
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [updateDownloaded, setUpdateDownloaded] = useState(false);
   
   // ✨ New: Transcript list
   const [transcript, setTranscript] = useState([]);
@@ -68,6 +76,26 @@ function MainApp() {
     };
     
     loadTranscriptHistory();
+  }, []);
+
+  // ✨ 监听自动更新事件
+  useEffect(() => {
+    if (!window.electronAPI) return;
+
+    window.electronAPI.onUpdateAvailable((info) => {
+      console.log('✨ Update available:', info.version);
+      setUpdateAvailable(true);
+      setUpdateInfo(info);
+    });
+
+    window.electronAPI.onDownloadProgress((progress) => {
+      setDownloadProgress(progress.percent);
+    });
+
+    window.electronAPI.onUpdateDownloaded((info) => {
+      console.log('✅ Update downloaded:', info.version);
+      setUpdateDownloaded(true);
+    });
   }, []);
 
   // ✨ Load microphone device setting
@@ -154,12 +182,25 @@ function MainApp() {
 
         const data = await response.json();
 
-        // Update running status
-        if (typeof data.is_running !== 'undefined') {
-          setIsRunning(data.is_running);
-          setStatus(data.is_running ? "Listening to AI brain... 🟢" : "Backend not running, click Start button to launch");
+        // 🚨 检查云端 API 错误（权限问题）- 优先显示
+        if (data.cloud_api_error) {
+          const { status, message } = data.cloud_api_error;
+          if (status === 401) {
+            setStatus('❌ Access Denied: Please login with valid credentials');
+          } else if (status === 403) {
+            setStatus('❌ Access Denied: Premium subscription required');
+          } else {
+            setStatus(`❌ Cloud API Error: ${status}`);
+          }
+          // 注意：不 return，继续更新其他状态，但状态栏已显示错误
         } else {
-          setStatus("Listening to AI brain... 🟢");
+          // 只有在没有错误时才更新正常状态
+          if (typeof data.is_running !== 'undefined') {
+            setIsRunning(data.is_running);
+            setStatus(data.is_running ? "Listening to AI brain... 🟢" : "Backend not running, click Start button to launch");
+          } else {
+            setStatus("Listening to AI brain... 🟢");
+          }
         }
 
         // ✨ Update transcript (if backend returned transcript field)
@@ -239,8 +280,15 @@ function MainApp() {
         prevTranscriptLength.current = 0; // Reset transcript length counter
         console.log('✅ Interview started successfully');
       } else {
-        setStatus('Startup request failed');
-        console.error('❌ Start request failed:', res.status);
+        // 检查是否是权限错误
+        if (res.status === 403 || (data.error && data.error.includes('premium'))) {
+          setStatus('❌ Access Denied: Premium subscription required');
+        } else if (res.status === 401) {
+          setStatus('❌ Access Denied: Please login with valid credentials');
+        } else {
+          setStatus('Startup request failed');
+        }
+        console.error('❌ Start request failed:', res.status, data);
       }
     } catch (err) {
       console.error('❌ Start error:', err);
@@ -506,6 +554,66 @@ function MainApp() {
         </div>
 
         <button
+          onClick={() => { setUserGuideModalOpen(true); setMenuOpen(false); }}
+          style={{
+            padding: '14px 20px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: 'white',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+            textAlign: 'left',
+            marginTop: '12px'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+           User Guide
+        </button>
+
+        <button
+          onClick={() => { setFeedbackModalOpen(true); setMenuOpen(false); }}
+          style={{
+            padding: '14px 20px',
+            borderRadius: '10px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            background: 'rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: 'white',
+            fontWeight: '500',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+            textAlign: 'left',
+            marginTop: '12px'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.6)';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'rgba(0, 0, 0, 0.4)';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          Feedback
+        </button>
+
+        <button
           onClick={() => { logout(); setMenuOpen(false); }}
           style={{
             padding: '14px 20px',
@@ -550,6 +658,424 @@ function MainApp() {
             zIndex: 999
           }}
         />
+      )}
+
+      {/* Feedback Modal */}
+      {feedbackModalOpen && (
+        <div
+          onClick={() => setFeedbackModalOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10000
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'rgba(26, 26, 26, 0.95)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              borderRadius: '16px',
+              padding: '32px',
+              maxWidth: '450px',
+              width: '90%',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              animation: 'fadeIn 0.3s ease-out'
+            }}
+          >
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: '600',
+              color: 'white',
+              marginBottom: '24px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+              textAlign: 'center'
+            }}>
+              Feedback
+            </h2>
+            
+            <div style={{
+              background: 'rgba(0, 122, 255, 0.1)',
+              border: '1px solid rgba(0, 122, 255, 0.1)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '24px'
+            }}>
+              <p style={{
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: '14px',
+                marginBottom: '12px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+              }}>
+                We'd love to hear from you! Send your feedback, suggestions, or bug reports to:
+              </p>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <a
+                  href="mailto:beteyu777@gmail.com"
+                  style={{
+                    color: '#007AFF',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    textDecoration: 'none',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+                    flex: 1
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.textDecoration = 'underline'}
+                  onMouseLeave={e => e.currentTarget.style.textDecoration = 'none'}
+                >
+                  beteyu777@gmail.com
+                </a>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText('beteyu777@gmail.com');
+                    alert('Email copied to clipboard!');
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    background: 'rgba(21, 22, 23, 0.3)',
+                    color: 'white',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0, 122, 255, 0.5)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(0, 122, 255, 0.3)'}
+                >
+                   Copy
+                </button>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setFeedbackModalOpen(false)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '10px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                background: 'rgba(128, 128, 128, 0.3)',
+                color: 'white',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.5)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.3)'}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* User Guide Modal */}
+      {userGuideModalOpen && (
+        <div
+          onClick={() => setUserGuideModalOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 10000
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'rgba(26, 26, 26, 0.95)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              borderRadius: '16px',
+              padding: '32px',
+              maxWidth: '450px',
+              width: '90%',
+              border: '1px solid rgba(255,255,255,0.1)',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+              animation: 'fadeIn 0.3s ease-out'
+            }}
+          >
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: '600',
+              color: 'white',
+              marginBottom: '24px',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+              textAlign: 'center'
+            }}>
+              User Guide
+            </h2>
+            
+            <div style={{
+              background: 'rgba(0, 122, 255, 0.1)',
+              border: '1px solid rgba(0, 122, 255, 0.1)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginBottom: '24px'
+            }}>
+              <p style={{
+                color: 'rgba(255,255,255,0.7)',
+                fontSize: '14px',
+                marginBottom: '16px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+              }}>
+                Check out our comprehensive user guide to get started:
+              </p>
+              <a
+                href="https://docs.google.com/document/d/1x12o3s2zUW6iqLU1_xBxBNKJ5BkJH24fFOEPK7lHw8g/edit?usp=sharing"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-block',
+                  color: '#007AFF',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  textDecoration: 'none',
+                  fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif',
+                  padding: '12px 20px',
+                  background: 'rgba(0, 122, 255, 0.2)',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(0, 122, 255, 0.3)',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(0, 122, 255, 0.3)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(0, 122, 255, 0.2)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                Open User Guide
+              </a>
+            </div>
+
+            <button
+              onClick={() => setUserGuideModalOpen(false)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '10px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                background: 'rgba(128, 128, 128, 0.3)',
+                color: 'white',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.5)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.3)'}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ✨ 更新提示窗口 */}
+      {updateAvailable && !updateDownloaded && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'rgba(26, 26, 26, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '12px',
+            padding: '20px',
+            maxWidth: '350px',
+            border: '1px solid rgba(0, 122, 255, 0.3)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            zIndex: 10001,
+            animation: 'slideInRight 0.3s ease-out'
+          }}
+        >
+          <h3 style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: 'white',
+            marginBottom: '8px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+          }}>
+            ✨ Update Available
+          </h3>
+          <p style={{
+            fontSize: '14px',
+            color: 'rgba(255,255,255,0.7)',
+            marginBottom: '16px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+          }}>
+            Version {updateInfo?.version} is available. {downloadProgress > 0 ? `Downloading... ${Math.round(downloadProgress)}%` : 'Ready to download.'}
+          </p>
+          {downloadProgress > 0 && (
+            <div style={{
+              width: '100%',
+              height: '6px',
+              background: 'rgba(255,255,255,0.1)',
+              borderRadius: '3px',
+              overflow: 'hidden',
+              marginBottom: '12px'
+            }}>
+              <div style={{
+                width: `${downloadProgress}%`,
+                height: '100%',
+                background: 'linear-gradient(90deg, #007AFF, #00C6FF)',
+                transition: 'width 0.3s'
+              }} />
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {downloadProgress === 0 && (
+              <>
+                <button
+                  onClick={() => {
+                    window.electronAPI.downloadUpdate();
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(0, 122, 255, 0.5)',
+                    background: 'rgba(0, 122, 255, 0.3)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0, 122, 255, 0.5)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(0, 122, 255, 0.3)'}
+                >
+                  Download
+                </button>
+                <button
+                  onClick={() => setUpdateAvailable(false)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    background: 'rgba(128, 128, 128, 0.3)',
+                    color: 'white',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.5)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.3)'}
+                >
+                  Later
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ✨ 更新下载完成提示 */}
+      {updateDownloaded && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: 'rgba(26, 26, 26, 0.95)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: '12px',
+            padding: '20px',
+            maxWidth: '350px',
+            border: '1px solid rgba(52, 199, 89, 0.3)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+            zIndex: 10001,
+            animation: 'slideInRight 0.3s ease-out'
+          }}
+        >
+          <h3 style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: 'white',
+            marginBottom: '8px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+          }}>
+            ✅ Update Ready
+          </h3>
+          <p style={{
+            fontSize: '14px',
+            color: 'rgba(255,255,255,0.7)',
+            marginBottom: '16px',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+          }}>
+            Update has been downloaded. Restart to install version {updateInfo?.version}.
+          </p>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={() => {
+                window.electronAPI.installUpdate();
+              }}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(52, 199, 89, 0.5)',
+                background: 'rgba(52, 199, 89, 0.3)',
+                color: 'white',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(52, 199, 89, 0.5)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(52, 199, 89, 0.3)'}
+            >
+              Restart Now
+            </button>
+            <button
+              onClick={() => setUpdateDownloaded(false)}
+              style={{
+                flex: 1,
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                background: 'rgba(128, 128, 128, 0.3)',
+                color: 'white',
+                fontWeight: '500',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.5)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'rgba(128, 128, 128, 0.3)'}
+            >
+              Later
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Control buttons: Start / Stop */}

@@ -5,6 +5,14 @@ import sys
 import requests
 from dotenv import load_dotenv
 
+# 全局 state 引用（避免循环导入）
+_global_state = None
+
+def set_global_state(state):
+    """从 main.py 设置全局 state 引用"""
+    global _global_state
+    _global_state = state
+
 def get_base_path():
     """获取程序运行的基础路径，支持开发和打包环境"""
     if getattr(sys, 'frozen', False):
@@ -124,7 +132,8 @@ class MatchService:
             )
             
             if response.status_code != 200:
-                print(f"❌ Cloud API Error: {response.status_code} - {response.text}")
+                if _global_state is not None:
+                    _global_state.cloud_api_error = {"status": response.status_code, "message": response.text}
                 return None
             
             # 4. Parse Result
@@ -194,7 +203,8 @@ class MatchService:
             )
             
             if response.status_code != 200:
-                print(f"❌ Cloud API Error: {response.status_code} - {response.text}")
+                if _global_state is not None:
+                    _global_state.cloud_api_error = {"status": response.status_code, "message": response.text}
                 return None
             
             result_data = response.json()

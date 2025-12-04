@@ -7,8 +7,8 @@ from datetime import datetime
 from difflib import SequenceMatcher
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from services.audio import AudioService
-from services.matcher import MatchService
+from services.audio import AudioService, set_audio_global_state
+from services.matcher import MatchService, set_global_state
 
 # ============================================
 # 获取程序运行的基础路径（支持 PyInstaller 打包）
@@ -21,6 +21,35 @@ def get_base_path():
     else:
         # 开发环境，使用当前脚本所在目录
         return os.path.dirname(os.path.abspath(__file__))
+
+def get_resource_path(relative_path):
+    """获取资源文件的绝对路径，兼容打包和开发环境"""
+    if getattr(sys, 'frozen', False):
+        # 打包环境：资源文件在 _MEIPASS 临时目录
+        base_path = sys._MEIPASS
+    else:
+        # 开发环境：使用当前脚本所在目录
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_path, relative_path)
+
+def get_writable_env_path():
+    """获取可写的 .env 文件路径"""
+    if getattr(sys, 'frozen', False):
+        # 打包环境：使用 exe 所在目录的 .env（可写）
+        writable_path = os.path.join(BASE_PATH, ".env")
+        
+        # 如果可写位置不存在 .env，从打包的模板复制
+        if not os.path.exists(writable_path):
+            template_path = get_resource_path(".env")
+            if os.path.exists(template_path):
+                import shutil
+                shutil.copy(template_path, writable_path)
+                print(f"📋 Copied .env template to: {writable_path}")
+        
+        return writable_path
+    else:
+        # 开发环境：直接使用当前目录的 .env
+        return os.path.join(BASE_PATH, ".env")
 
 # 全局基础路径
 BASE_PATH = get_base_path()
@@ -57,8 +86,15 @@ class GlobalState:
     
     # --- 🌐 云端化：用户 Token ---
     user_token = None        # 用户的认证 Token，用于调用云端 API
+    
+    # --- 🚨 云端 API 错误状态 ---
+    cloud_api_error = None   # 存储云端 API 错误信息: {"status": 401, "message": "..."}
 
 state = GlobalState()
+
+# 设置 matcher 和 audio 的全局 state 引用
+set_global_state(state)
+set_audio_global_state(state)
 
 # 辅助函数：格式化时间 (把秒数转为 05:30 格式)
 def format_time(seconds):
@@ -240,6 +276,7 @@ def stop_interview():
     print(f"📥 Received STOP request, current state: is_running={state.is_running}")
     
     state.is_running = False
+    state.cloud_api_error = None  # 清除错误状态
     
     # ✨ 停止时保存文件（只有当有记录时才保存）
     if state.transcript_log:
@@ -256,12 +293,17 @@ def stop_interview():
 
 @app.get("/api/poll")
 def get_latest_result():
+    # 返回错误状态但不清除（持续显示直到面试停止）
+    error = state.cloud_api_error
+    
     return {
         "is_running": state.is_running,
         "text": state.latest_text,
         "card": state.latest_card,
         # ✨ 返回 transcript 给前端展示
-        "transcript": state.transcript_log 
+        "transcript": state.transcript_log,
+        # 🚨 返回云端 API 错误（如果有）
+        "cloud_api_error": error
     }
 
 @app.post("/api/rewind")
@@ -375,7 +417,8 @@ def get_transcripts():
 @app.get("/api/mic-device")
 def get_mic_device():
     """获取当前麦克风设备设置"""
-    env_path = os.path.join(BASE_PATH, ".env")
+    env_path = get_writable_env_path()
+    print(f"📂 Reading .env from: {env_path}")
     try:
         with open(env_path, 'r', encoding='utf-8') as f:
             for line in f:
@@ -394,7 +437,8 @@ def set_mic_device(data: dict):
     if device not in ["default", "CABLE"]:
         return {"success": False, "error": "Invalid device. Must be 'default' or 'CABLE'"}
     
-    env_path = os.path.join(BASE_PATH, ".env")
+    env_path = get_writable_env_path()
+    print(f"📝 Writing to .env at: {env_path}")
     try:
         # 读取现有内容
         with open(env_path, 'r', encoding='utf-8') as f:

@@ -6,6 +6,14 @@ import re
 import requests
 from dotenv import load_dotenv
 
+# 全局 state 引用（与 matcher.py 相同的机制）
+_global_state = None
+
+def set_audio_global_state(state):
+    """从 main.py 设置全局 state 引用"""
+    global _global_state
+    _global_state = state
+
 def get_base_path():
     """获取程序运行的基础路径，支持开发和打包环境"""
     if getattr(sys, 'frozen', False):
@@ -108,7 +116,8 @@ class AudioService:
                 )
                 
                 if response.status_code != 200:
-                    print(f"❌ Cloud API Error: {response.status_code} - {response.text}")
+                    if _global_state is not None:
+                        _global_state.cloud_api_error = {"status": response.status_code, "message": response.text}
                     return None
                 
                 result = response.json()
