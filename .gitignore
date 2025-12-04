@@ -11,6 +11,10 @@ env/
 *.egg-info/
 build/
 
+# Explicitly ignore backend venv
+backend/venv/
+backend/.venv/
+
 # Node
 node_modules/
 npm-debug.log*
