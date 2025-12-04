@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clear RecallAI Storage</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #17a2b8;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            color: #0c5460;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            color: #155724;
+        }
+        button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #c82333;
+        }
+        button.secondary {
+            background: #6c757d;
+        }
+        button.secondary:hover {
+            background: #5a6268;
+        }
+        .storage-info {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .storage-info div {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 RecallAI Storage Cleaner</h1>
+        
+        <div class="info">
+            <strong>ℹ️ 当前存储状态</strong>
+            <div class="storage-info" id="storageInfo">检查中...</div>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ 警告</strong><br>
+            清除存储将删除所有保存的卡片、分类和设置。此操作不可恢复！
+        </div>
+
+        <div>
+            <button onclick="clearAllStorage()">🗑️ 清除所有数据</button>
+            <button class="secondary" onclick="clearTestCards()">🧪 仅清除测试卡片</button>
+            <button class="secondary" onclick="location.reload()">🔄 刷新状态</button>
+        </div>
+
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function updateStorageInfo() {
+            const cards = localStorage.getItem('knowledgebase_cards');
+            const categories = localStorage.getItem('knowledgebase_categories');
+            const activeCategory = localStorage.getItem('knowledgebase_activeCategory');
+            
+            let cardCount = 0;
+            let categoryCount = 0;
+            
+            try {
+                if (cards) cardCount = JSON.parse(cards).length;
+                if (categories) categoryCount = JSON.parse(categories).length;
+            } catch (e) {
+                console.error('Error parsing storage:', e);
+            }
+
+            document.getElementById('storageInfo').innerHTML = `
+                <div><strong>卡片数量:</strong> ${cardCount}</div>
+                <div><strong>分类数量:</strong> ${categoryCount}</div>
+                <div><strong>当前分类:</strong> ${activeCategory || '未设置'}</div>
+                <div><strong>存储键:</strong> knowledgebase_cards, knowledgebase_categories, knowledgebase_activeCategory</div>
+            `;
+        }
+
+        function clearAllStorage() {
+            if (!confirm('确定要清除所有数据吗？此操作不可恢复！')) {
+                return;
+            }
+
+            localStorage.removeItem('knowledgebase_cards');
+            localStorage.removeItem('knowledgebase_categories');
+            localStorage.removeItem('knowledgebase_activeCategory');
+            
+            document.getElementById('result').innerHTML = `
+                <div class="success">
+                    <strong>✅ 清除成功</strong><br>
+                    所有 localStorage 数据已被清除。<br>
+                    下次启动应用时将从 cards.json 重新加载。
+                </div>
+            `;
+            
+            updateStorageInfo();
+        }
+
+        function clearTestCards() {
+            const cards = localStorage.getItem('knowledgebase_cards');
+            if (!cards) {
+                alert('没有找到卡片数据');
+                return;
+            }
+
+            try {
+                let cardArray = JSON.parse(cards);
+                const originalCount = cardArray.length;
+                
+                // 删除 card_1 和 card_2
+                cardArray = cardArray.filter(card => 
+                    card.id !== 'card_1' && card.id !== 'card_2'
+                );
+                
+                localStorage.setItem('knowledgebase_cards', JSON.stringify(cardArray));
+                
+                document.getElementById('result').innerHTML = `
+                    <div class="success">
+                        <strong>✅ 清除成功</strong><br>
+                        已删除测试卡片 (card_1, card_2)<br>
+                        原有: ${originalCount} 张卡片<br>
+                        现有: ${cardArray.length} 张卡片
+                    </div>
+                `;
+                
+                updateStorageInfo();
+            } catch (e) {
+                alert('清除失败: ' + e.message);
+            }
+        }
+
+        // 页面加载时更新信息
+        updateStorageInfo();
+    </script>
+</body>
+</html>

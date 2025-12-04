@@ -3,7 +3,13 @@ from PyInstaller.utils.hooks import collect_all
 
 datas = [('data/cards.json', 'data'), ('data/transcripts', 'data/transcripts'), ('.env', '.')]
 binaries = []
-hiddenimports = ['uvicorn.logging', 'uvicorn.loops', 'uvicorn.loops.auto', 'uvicorn.protocols', 'uvicorn.protocols.http', 'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets', 'uvicorn.protocols.websockets.auto', 'uvicorn.lifespan', 'uvicorn.lifespan.on']
+hiddenimports = [
+    'uvicorn.logging', 'uvicorn.loops', 'uvicorn.loops.auto', 'uvicorn.protocols', 
+    'uvicorn.protocols.http', 'uvicorn.protocols.http.auto', 'uvicorn.protocols.websockets', 
+    'uvicorn.protocols.websockets.auto', 'uvicorn.lifespan', 'uvicorn.lifespan.on',
+    'fastapi', 'pydantic', 'starlette', 'speech_recognition', 'pyaudio', 'pyttsx3', 
+    'dotenv', 'python-dotenv', 'requests', 'requests.adapters', 'requests.auth', 'urllib3'
+]
 tmp_ret = collect_all('groq')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 tmp_ret = collect_all('httpx')

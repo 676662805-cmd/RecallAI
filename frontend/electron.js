@@ -1,9 +1,15 @@
 ﻿const { app, BrowserWindow, ipcMain, screen } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
 const net = require('net');
+
+// 🚀 性能优化：禁用后台节流，确保卡片即时弹出
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 
 const store = new Store();
 
@@ -12,6 +18,45 @@ let popupWindow = null;
 let popupPosition = null;
 let backendProcess = null;
 let isQuitting = false;
+
+// ✨ 自动更新配置
+autoUpdater.autoDownload = false; // 不自动下载，先询问用户
+autoUpdater.autoInstallOnAppQuit = true; // 退出时自动安装
+
+// 自动更新事件监听
+autoUpdater.on('checking-for-update', () => {
+  console.log('🔍 Checking for updates...');
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('✨ Update available:', info.version);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-available', info);
+  }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('✅ App is up to date:', info.version);
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('❌ Update error:', err);
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  const logMessage = `Download speed: ${progressObj.bytesPerSecond} - Downloaded ${progressObj.percent}%`;
+  console.log(logMessage);
+  if (mainWindow) {
+    mainWindow.webContents.send('download-progress', progressObj);
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('✅ Update downloaded:', info.version);
+  if (mainWindow) {
+    mainWindow.webContents.send('update-downloaded', info);
+  }
+});
 
 // 检查端口是否被占用
 function checkPort(port) {
@@ -191,6 +236,20 @@ async function startBackend() {
     backendProcess = null;
   });
 
+  // 🚀 提高后端进程优先级，防止被 Zoom/Teams 占用
+  try {
+    if (process.platform === 'win32' && backendProcess.pid) {
+      const { exec } = require('child_process');
+      // 设置为高优先级（HIGH_PRIORITY_CLASS）
+      exec(`wmic process where ProcessId=${backendProcess.pid} CALL setpriority "high priority"`, (err) => {
+        if (err) console.warn('⚠️ Could not set backend priority:', err.message);
+        else console.log('✅ Backend process priority set to HIGH');
+      });
+    }
+  } catch (err) {
+    console.warn('⚠️ Failed to set process priority:', err);
+  }
+
   backendProcess.on('close', (code) => {
     console.log(`⚠️ Backend process exited with code ${code}`);
     backendProcess = null;
@@ -206,33 +265,51 @@ async function startBackend() {
     }
   });
   
-  // 健康检查：等待3秒后检查后端是否成功启动
-  setTimeout(async () => {
-    try {
-      const response = await fetch('http://127.0.0.1:8000/health', { 
-        signal: AbortSignal.timeout(2000) 
-      });
-      if (response.ok) {
-        console.log('✅ Backend health check passed');
-      } else {
-        console.error('❌ Backend health check failed');
+  // 返回 Promise，等待后端就绪
+  return new Promise((resolve) => {
+    // 健康检查：轮询后端直到就绪（最多 10 秒）
+    let attempts = 0;
+    const maxAttempts = 20;
+    const checkInterval = setInterval(async () => {
+      attempts++;
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/poll', { 
+          signal: AbortSignal.timeout(1000) 
+        });
+        if (response.ok) {
+          console.log('✅ Backend is ready');
+          clearInterval(checkInterval);
+          resolve(true);
+        }
+      } catch (err) {
+        if (attempts >= maxAttempts) {
+          console.error('❌ Backend failed to start after 10 seconds');
+          clearInterval(checkInterval);
+          resolve(false);
+        } else {
+          console.log(`⏳ Waiting for backend... (${attempts}/${maxAttempts})`);
+        }
       }
-    } catch (err) {
-      console.error('❌ Backend not responding to health check:', err.message);
-    }
-  }, 3000);
+    }, 500);
+  });
 }
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, 'public/icon.png'),
+    autoHideMenuBar: true, // 隐藏菜单栏（按 Alt 可显示）
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      backgroundThrottling: false // 禁用后台节流
     }
   });
+
+  // 完全移除菜单栏
+  mainWindow.setMenuBarVisibility(false);
 
   if (process.env.NODE_ENV === 'development') {
     mainWindow.loadURL('http://localhost:5173');
@@ -338,9 +415,17 @@ function createPopupWindow(cardData) {
   });
 }
 
-app.whenReady().then(() => {
-  startBackend();
+app.whenReady().then(async () => {
+  // 先启动后端，等待就绪
+  await startBackend();
+  
+  // 后端就绪后再创建前端窗口
   createMainWindow();
+  
+  // ✨ 启动后 3 秒检查更新（避免影响启动速度）
+  setTimeout(() => {
+    autoUpdater.checkForUpdates();
+  }, 3000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -349,7 +434,7 @@ app.whenReady().then(() => {
   });
 });
 
-app.on('before-quit', (e) => {
+app.on('before-quit', async (e) => {
   console.log('🚪 Application before-quit event');
   isQuitting = true;
   
@@ -363,17 +448,33 @@ app.on('before-quit', (e) => {
       // 先尝试正常关闭
       backendProcess.kill('SIGTERM');
       
-      // 1秒后强制关闭
-      setTimeout(() => {
-        if (backendProcess && !backendProcess.killed) {
-          console.log('⚠️ Force killing backend process...');
-          backendProcess.kill('SIGKILL');
-        }
-        backendProcess = null;
+      // 等待后端进程结束
+      await new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+          if (backendProcess && !backendProcess.killed) {
+            console.log('⚠️ Force killing backend process...');
+            backendProcess.kill('SIGKILL');
+          }
+          resolve();
+        }, 1000);
         
-        // 继续退出
-        app.exit(0);
-      }, 1000);
+        if (backendProcess) {
+          backendProcess.on('exit', () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+        }
+      });
+      
+      backendProcess = null;
+      
+      // 额外清理：确保端口被释放
+      await killProcessOnPort(8000);
+      
+      console.log('✅ Backend process cleaned up');
+      
+      // 继续退出
+      app.exit(0);
     } catch (err) {
       console.error('❌ Error killing backend process:', err);
       backendProcess = null;
@@ -382,7 +483,7 @@ app.on('before-quit', (e) => {
   }
 });
 
-app.on('will-quit', () => {
+app.on('will-quit', async () => {
   console.log('🚪 Application will-quit event');
   // 确保后端进程被清理
   if (backendProcess && !backendProcess.killed) {
@@ -393,6 +494,9 @@ app.on('will-quit', () => {
     }
     backendProcess = null;
   }
+  
+  // 最后的保险：清理所有占用 8000 端口的进程
+  await killProcessOnPort(8000);
 });
 
 app.on('window-all-closed', () => {
@@ -411,4 +515,17 @@ ipcMain.on('close-popup', () => {
   if (popupWindow && !popupWindow.isDestroyed()) {
     popupWindow.close();
   }
+});
+
+// ✨ 自动更新 IPC 处理
+ipcMain.on('check-for-updates', () => {
+  autoUpdater.checkForUpdates();
+});
+
+ipcMain.on('download-update', () => {
+  autoUpdater.downloadUpdate();
+});
+
+ipcMain.on('install-update', () => {
+  autoUpdater.quitAndInstall();
 });

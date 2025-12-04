@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import useSystemTheme from '../hooks/useSystemTheme';
+import RenameModal from '../components/RenameModal';
 
 // Component for viewing transcript history list
 const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDeleteTranscript, onRenameTranscript, selectedTranscriptId }) => {
     const [menuOpen, setMenuOpen] = useState(null);
+    const [renameModalOpen, setRenameModalOpen] = useState(false);
+    const [renamingTranscript, setRenamingTranscript] = useState(null);
 
     const handleMenuClick = (e, transcriptId) => {
         e.stopPropagation();
@@ -15,11 +18,15 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
     };
 
     const handleRename = (transcriptId, currentName) => {
-        const newName = window.prompt('Enter new transcript name:', currentName);
-        if (newName && newName.trim() && newName.trim() !== currentName) {
-            onRenameTranscript(transcriptId, newName.trim());
-        }
+        setRenamingTranscript({ id: transcriptId, name: currentName });
+        setRenameModalOpen(true);
         setMenuOpen(null);
+    };
+
+    const confirmRename = (newName) => {
+        if (renamingTranscript) {
+            onRenameTranscript(renamingTranscript.id, newName);
+        }
     };
 
     const handleDelete = (transcriptId) => {
@@ -44,6 +51,14 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
     }, [menuOpen]);
 
     return (
+        <>
+        <RenameModal
+            isOpen={renameModalOpen}
+            onClose={() => setRenameModalOpen(false)}
+            onConfirm={confirmRename}
+            currentName={renamingTranscript?.name || ''}
+            title="Rename Transcript"
+        />
         <div style={{
             width: '100%',
             background: theme.cardBg,
@@ -194,6 +209,7 @@ const TranscriptHistoryList = ({ theme, transcripts, onSelectTranscript, onDelet
                 )}
             </div>
         </div>
+        </>
     );
 };
 
