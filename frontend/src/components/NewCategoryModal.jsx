@@ -28,7 +28,7 @@ const NewCategoryModal = ({ theme, isOpen, onClose, onCreate }) => { // 🔥 1. 
         onClose();
     };
 
-    // --- 2. 样式定义 (已替换为动态主题变量，并移到内部) ---
+    // --- 2. 样式定义 (已替换为动态主题变量，并移到内) ---
     const modalOverlayStyle = {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         backgroundColor: theme.isDark ? 'rgba(0, 0, 0, 0.75)' : 'rgba(0, 0, 0, 0.4)', // 🔥 Dynamic dark overlay
