@@ -19,6 +19,7 @@ let popupPosition = null;
 let backendProcess = null;
 let isQuitting = false;
 let isCleaningUp = false; // ✨ 防止重复清理
+let backendHealthCheckInterval = null; // ✨ 后端健康检查定时器
 
 // 📝 日志文件路径
 const logPath = path.join(app.getPath('userData'), 'update.log');
@@ -175,17 +176,28 @@ function loadEnvFile(envPath) {
 }
 
 async function startBackend() {
+  console.log('🔧 startBackend() called');
+  log('🔧 startBackend() called');
+  
   // 检查后端是否已经在运行
   if (backendProcess && !backendProcess.killed) {
     console.log('⚠️ Backend process already running (PID: ' + backendProcess.pid + ')');
+    log('⚠️ Backend already running (PID: ' + backendProcess.pid + ')');
     return;
   }
 
   // ✨ 修复：使用 app.isPackaged 判断是否为打包环境
+  console.log(`📦 app.isPackaged: ${app.isPackaged}`);
+  log(`📦 app.isPackaged: ${app.isPackaged}`);
+  
   if (!app.isPackaged) {
     console.log('Development mode: Backend should be started via npm run dev');
+    log('Development mode: Backend should be started manually');
     return;
   }
+
+  console.log('✅ Starting backend in packaged mode...');
+  log('✅ Starting backend in packaged mode...');
 
   // 检查端口是否可用
   const portAvailable = await checkPort(8000);
@@ -223,6 +235,9 @@ async function startBackend() {
   console.log(`Starting backend from: ${backendPath}`);
   console.log(`Working directory: ${cwd}`);
   console.log(`Looking for .env at: ${envPath}`);
+  log(`📂 Backend path: ${backendPath}`);
+  log(`📂 Working directory: ${cwd}`);
+  log(`📂 Env path: ${envPath}`);
 
   const envVars = loadEnvFile(envPath);
 
@@ -236,12 +251,8 @@ async function startBackend() {
     PYTHONIOENCODING: 'utf-8'  // ✨ 设置 Python 输出编码为 UTF-8，避免 Windows GBK 编码错误
   };
 
-  console.log('🚀 Starting backend with environment variables...');
-  if (envVars.GROQ_API_KEY) {
-    console.log('   GROQ_API_KEY: ✅ Found');
-  } else {
-    console.error('   GROQ_API_KEY: ❌ Missing!');
-  }
+  console.log('🚀 Starting backend...');
+  log('🚀 Starting backend...');
 
   backendProcess = spawn(backendPath, [], {
     cwd: cwd,
@@ -250,17 +261,23 @@ async function startBackend() {
   });
 
   console.log(`✅ Backend process started with PID: ${backendProcess.pid}`);
+  log(`✅ Backend process started with PID: ${backendProcess.pid}`);
 
   backendProcess.stdout.on('data', (data) => {
-    console.log(`Backend: ${data.toString()}`);
+    const message = data.toString();
+    console.log(`Backend: ${message}`);
+    log(`Backend: ${message}`);
   });
 
   backendProcess.stderr.on('data', (data) => {
-    console.error(`Backend Error: ${data.toString()}`);
+    const message = data.toString();
+    console.error(`Backend Error: ${message}`);
+    log(`Backend Error: ${message}`);
   });
 
   backendProcess.on('error', (err) => {
     console.error('❌ Failed to start backend:', err);
+    log(`❌ Failed to start backend: ${err.message}`);
     backendProcess = null;
   });
 
@@ -280,46 +297,94 @@ async function startBackend() {
 
   backendProcess.on('close', (code) => {
     console.log(`⚠️ Backend process exited with code ${code}`);
+    log(`⚠️ Backend process exited with code ${code}`);
     backendProcess = null;
     
-    // 如果不是正常退出且应用未关闭，尝试重启
-    if (code !== 0 && !isQuitting && mainWindow && !mainWindow.isDestroyed()) {
-      console.log('🔄 Backend crashed, attempting to restart in 3 seconds...');
+    // ✨ 如果不是正在退出，尝试重启后端
+    if (!isQuitting && !isCleaningUp) {
+      console.log('🔄 Backend crashed unexpectedly, will restart in 2 seconds...');
+      log('🔄 Backend crashed, restarting in 2s...');
       setTimeout(() => {
-        if (!isQuitting) {
+        if (!isQuitting && !isCleaningUp) {
+          console.log('🚀 Attempting to restart backend...');
+          log('🚀 Attempting backend restart...');
           startBackend();
         }
-      }, 3000);
+      }, 2000);
     }
   });
+
+  return backendProcess;
+}
+
+// ✨ 后端健康检查函数
+async function checkBackendHealth() {
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/poll', { 
+      method: 'GET',
+      timeout: 3000 
+    });
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+
+// ✨ 启动后端健康检查定时器（每5秒检查一次，更频繁）
+function startBackendHealthCheck() {
+  if (backendHealthCheckInterval) {
+    clearInterval(backendHealthCheckInterval);
+  }
   
-  // 返回 Promise，等待后端就绪
-  return new Promise((resolve) => {
-    // 健康检查：轮询后端直到就绪（最多 10 秒）
-    let attempts = 0;
-    const maxAttempts = 20;
-    const checkInterval = setInterval(async () => {
-      attempts++;
-      try {
-        const response = await fetch('http://127.0.0.1:8000/api/poll', { 
-          signal: AbortSignal.timeout(1000) 
-        });
-        if (response.ok) {
-          console.log('✅ Backend is ready');
-          clearInterval(checkInterval);
-          resolve(true);
-        }
-      } catch (err) {
-        if (attempts >= maxAttempts) {
-          console.error('❌ Backend failed to start after 10 seconds');
-          clearInterval(checkInterval);
-          resolve(false);
+  backendHealthCheckInterval = setInterval(async () => {
+    if (isQuitting || isCleaningUp) {
+      return; // 如果正在退出，不执行检查
+    }
+    
+    const isHealthy = await checkBackendHealth();
+    
+    if (!isHealthy) {
+      console.log('⚠️ Backend health check failed, attempting immediate restart...');
+      
+      // 检查进程是否还存在
+      if (!backendProcess || backendProcess.killed) {
+        console.log('🚀 Backend process not running, starting immediately...');
+        await startBackend();
+        
+        // 等待2秒验证启动
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        const stillHealthy = await checkBackendHealth();
+        if (stillHealthy) {
+          console.log('✅ Backend restarted successfully');
         } else {
-          console.log(`⏳ Waiting for backend... (${attempts}/${maxAttempts})`);
+          console.error('❌ Backend restart failed, will retry in next check');
+        }
+      } else {
+        console.log('🔄 Backend process exists but not responding, restarting...');
+        try {
+          backendProcess.kill('SIGTERM');
+          backendProcess = null;
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          await startBackend();
+        } catch (err) {
+          console.error('❌ Error restarting backend:', err);
         }
       }
-    }, 500);
-  });
+    } else {
+      // console.log('✅ Backend health check passed');
+    }
+  }, 5000); // ✨ 改为每5秒检查一次，更快发现问题
+  
+  console.log('✅ Backend health check started (interval: 5s)');
+}
+
+// ✨ 停止健康检查
+function stopBackendHealthCheck() {
+  if (backendHealthCheckInterval) {
+    clearInterval(backendHealthCheckInterval);
+    backendHealthCheckInterval = null;
+    console.log('🛑 Backend health check stopped');
+  }
 }
 
 function createMainWindow() {
@@ -450,8 +515,45 @@ function createPopupWindow(cardData) {
 }
 
 app.whenReady().then(async () => {
-  // 先启动后端，等待就绪
-  await startBackend();
+  // ✨ 启动后端（带重试机制）
+  let backendStarted = false;
+  let retryCount = 0;
+  const maxRetries = 5;
+  
+  while (!backendStarted && retryCount < maxRetries) {
+    try {
+      await startBackend();
+      
+      // 等待2秒检查后端是否真的启动成功
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const isHealthy = await checkBackendHealth();
+      if (isHealthy) {
+        console.log('✅ Backend started successfully');
+        backendStarted = true;
+      } else {
+        retryCount++;
+        console.warn(`⚠️ Backend health check failed, retry ${retryCount}/${maxRetries}...`);
+        if (retryCount < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    } catch (err) {
+      retryCount++;
+      console.error(`❌ Backend start failed (attempt ${retryCount}/${maxRetries}):`, err);
+      if (retryCount < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+  }
+  
+  if (!backendStarted) {
+    console.error('❌ Failed to start backend after', maxRetries, 'attempts');
+    // 即使失败也继续，健康检查会继续尝试
+  }
+  
+  // ✨ 启动后端健康检查（作为备用保障）
+  startBackendHealthCheck();
   
   // 后端就绪后再创建前端窗口
   createMainWindow();
@@ -470,6 +572,9 @@ app.whenReady().then(async () => {
 
 app.on('before-quit', async (e) => {
   console.log('🚪 Application before-quit event');
+  
+  // ✨ 停止健康检查
+  stopBackendHealthCheck();
   
   // ✨ 防止重复清理
   if (isCleaningUp) {
