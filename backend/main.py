@@ -3,12 +3,20 @@ import time
 import json
 import os
 import sys
+import io
 from datetime import datetime
 from difflib import SequenceMatcher
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from services.audio import AudioService, set_audio_global_state
 from services.matcher import MatchService, set_global_state
+
+# ✨ 修复 Windows 编码问题：确保 stdout/stderr 使用 UTF-8
+if sys.platform == 'win32':
+    if sys.stdout.encoding != 'utf-8':
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    if sys.stderr.encoding != 'utf-8':
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
 # ============================================
 # 获取程序运行的基础路径（支持 PyInstaller 打包）

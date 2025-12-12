@@ -247,8 +247,7 @@ async function startBackend() {
   const env = {
     ...process.env,
     ...envVars,
-    PYTHONUNBUFFERED: '1',
-    PYTHONIOENCODING: 'utf-8'  // ✨ 设置 Python 输出编码为 UTF-8，避免 Windows GBK 编码错误
+    PYTHONUNBUFFERED: '1'
   };
 
   console.log('🚀 Starting backend...');

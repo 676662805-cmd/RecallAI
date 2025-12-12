@@ -1,0 +1,27 @@
+[
+  {
+    "id": "card_5",
+    "topic": "Where do you see yourself in 5 years",
+    "content": "1. [Short-term]: Master the technologies used in this team and become a core contributor.\n2. [Long-term]: I aim to grow into a [e.g., Senior Engineer / Tech Lead] role.\n3. [Alignment]: I want to lead projects that drive significant impact for [Company Name], specifically in [Specific Domain]."
+  },
+  {
+    "id": "card_4",
+    "topic": "Why do you want to work here? / Why this company?",
+    "content": "1. [Company Mission]: I admire your commitment to [e.g., sustainability / innovation in AI]. It aligns with my personal values. 2. [Product]: I am a huge fan of [Product Name] and I have some ideas on how to improve its [Specific Feature]. 3. [Culture]: I read about your [e.g., collaborative / fast-paced] culture, which fits my working style perfectly."
+  },
+  {
+    "id": "card_3",
+    "topic": "Tell me about a challenge you faced / STAR Method",
+    "content": "Situation: We faced a [e.g., 50% drop in performance / critical bug] right before the deadline.\\nTask: My responsibility was to [e.g., optimize the database queries].\\nAction: I used [Tool/Method, e.g., SQL indexing and caching]. I also coordinated with the frontend team to reduce API calls.\\nResult: We improved performance by [X]% and launched on time."
+  },
+  {
+    "id": "card_2",
+    "topic": "What is your greatest weakness?",
+    "content": "Strategy: Real weakness + Improvement Plan (Don't say 'I work too hard')\\n\\n1. [Weakness]: Sometimes I struggle with [e.g., public speaking / delegating tasks / perfectionism].\\n2. [Action]: To improve, I have started [e.g., joining Toastmasters / using Trello for time management].\\n3. [Result]: I have seen significant improvement in [Specific Area] and I am continuing to work on it actively."
+  },
+  {
+    "id": "card_1",
+    "topic": "Tell me about yourself / Self Introduction",
+    "content": "Structure: Present -> Past -> Future\n1. [Present]: I am currently a [Your Major] student at [Your University], specializing in [Your Field, e.g., Full Stack Development].\n2. [Past]: Previously, I interned at [Company/Project], where I built [Key Achievement, e.g., a high-concurrency system using Redis].\n3. [Future]: I am passionate about [Company's Industry] and I see this role as a perfect opportunity to apply my skills in [Skill 1] and [Skill 2] to solve real-world problems."
+  }
+]

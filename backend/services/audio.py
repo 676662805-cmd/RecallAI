@@ -151,18 +151,18 @@ class AudioService:
             
             # 2. 如果整句话就是垃圾词
             if text_clean in hallucinations:
-                print(f"👻 Filtered Hallucination (exact): '{text}'")
+                print(f"[FILTER] Filtered Hallucination (exact): '{text}'")
                 return None
             
             # 3. 如果句子很短（<8个字符）且包含thank/you等关键词
             if len(text) < 8 and any(word in text_clean for word in ["thank", "you", "thanks"]):
-                print(f"👻 Filtered Hallucination (short): '{text}'")
+                print(f"[FILTER] Filtered Hallucination (short): '{text}'")
                 return None
             
             # 4. 如果只有1-2个单词且是常见礼貌用语
             words = text_clean.split()
             if len(words) <= 2 and all(w in hallucinations for w in words):
-                print(f"👻 Filtered Hallucination (polite): '{text}'")
+                print(f"[FILTER] Filtered Hallucination (polite): '{text}'")
                 return None
 
             print(f"[VOICE] You said: {text}")
