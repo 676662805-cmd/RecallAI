@@ -26,10 +26,10 @@ def get_base_path():
 env_path = os.path.join(get_base_path(), '.env')
 if os.path.exists(env_path):
     load_dotenv(env_path)
-    print(f"✅ Loaded .env from: {env_path}")
+    print(f"[OK] Loaded .env from: {env_path}")
 else:
     load_dotenv()  # 尝试从默认位置加载
-    print(f"⚠️ .env not found at {env_path}, using default")
+    print(f"[WARN] .env not found at {env_path}, using default")
 
 # 获取 Render 云端 URL
 RENDER_URL = os.getenv("RENDER_URL", "https://recallai-d9sc.onrender.com")
@@ -37,7 +37,7 @@ RENDER_URL = os.getenv("RENDER_URL", "https://recallai-d9sc.onrender.com")
 class MatchService:
     def __init__(self):
         self.cards = self._load_cards()
-        # --- 🌐 云端化：用户 Token ---
+        # ---  云端化：用户 Token ---
         self.user_token = None
     
     def set_token(self, token: str):
@@ -48,7 +48,7 @@ class MatchService:
         try:
             base_path = get_base_path()
             file_path = os.path.join(base_path, "data", "cards.json")
-            print(f"📂 Loading cards from: {file_path}")
+            print(f"[FILE] Loading cards from: {file_path}")
             with open(file_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
@@ -58,7 +58,7 @@ class MatchService:
     def load_cards(self):
         """重新加载 cards（用于前端同步后刷新）"""
         self.cards = self._load_cards()
-        print(f"🔄 Reloaded {len(self.cards)} cards from file")
+        print(f"[RELOAD] Reloaded {len(self.cards)} cards from file")
 
     def find_best_match(self, user_query: str):
         
@@ -106,7 +106,7 @@ class MatchService:
 
         # --- 3. 补全：调用云端 API 发送请求 ---
         if not self.user_token:
-            print("❌ No user token set! Cannot call cloud API")
+            print("[ERROR] No user token set! Cannot call cloud API")
             return None
         
         try:
@@ -142,16 +142,16 @@ class MatchService:
             result_json = json.loads(result_text)
             match_index = result_json.get("best_match_index")
             
-            print(f"🔍 AI Match Result: index={match_index}")
-            print(f"📋 Available cards: {len(self.cards)} cards")
+            print(f"[SEARCH] AI Match Result: index={match_index}")
+            print(f"[INFO] Available cards: {len(self.cards)} cards")
 
             # Return the full card object if found
             if match_index is not None and isinstance(match_index, int) and 0 <= match_index < len(self.cards):
                 matched_card = self.cards[match_index]
-                print(f"✅ Found matching card: {matched_card['topic']}")
+                print(f"[OK] Found matching card: {matched_card['topic']}")
                 return matched_card
             else:
-                print(f"⚠️ No valid match (index={match_index})")
+                print(f"[WARN] No valid match (index={match_index})")
             
             return None
 
@@ -177,7 +177,7 @@ class MatchService:
         """
 
         if not self.user_token:
-            print("❌ No user token set! Cannot call cloud API")
+            print("[ERROR] No user token set! Cannot call cloud API")
             return None
 
         try:
@@ -214,7 +214,7 @@ class MatchService:
             if result.get("valid"):
                 return {
                     "id": f"ai_generated_{int(time.time())}", 
-                    "topic": f"✨ AI: {result.get('topic')}", 
+                    "topic": f"[NEW] AI: {result.get('topic')}", 
                     "content": result.get("content")
                 }
             else:

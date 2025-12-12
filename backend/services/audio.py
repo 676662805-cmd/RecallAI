@@ -27,10 +27,10 @@ def get_base_path():
 env_path = os.path.join(get_base_path(), '.env')
 if os.path.exists(env_path):
     load_dotenv(env_path)
-    print(f"✅ Loaded .env from: {env_path}")
+    print(f"[OK] Loaded .env from: {env_path}")
 else:
     load_dotenv()  # 尝试从默认位置加载
-    print(f"⚠️ .env not found at {env_path}, using default")
+    print(f"[WARN] .env not found at {env_path}, using default")
 
 # 获取 Render 云端 URL
 RENDER_URL = os.getenv("RENDER_URL", "https://recallai-d9sc.onrender.com")
@@ -44,10 +44,10 @@ class AudioService:
         self.recognizer.energy_threshold = 300 
         self.recognizer.dynamic_energy_threshold = True 
         
-        # --- ✨ 新增：初始化时自动查找设备 ---
+        # --- [NEW] 新增：初始化时自动查找设备 ---
         self.target_device_index = self._find_device_index()
         
-        # --- 🌐 云端化：用户 Token (需要从外部设置) ---
+        # ---  云端化：用户 Token (需要从外部设置) ---
         self.user_token = None
     
     def set_token(self, token: str):
@@ -56,10 +56,10 @@ class AudioService:
     
     def reload_device(self):
         """重新读取设备配置（用于切换麦克风/CABLE）"""
-        print("🔄 Reloading audio device configuration...")
+        print("[RELOAD] Reloading audio device configuration...")
         self.target_device_index = self._find_device_index()
         device_status = f"Index {self.target_device_index}" if self.target_device_index is not None else "Default Mic"
-        print(f"✅ Audio device updated to: [{device_status}]")
+        print(f"[OK] Audio device updated to: [{device_status}]")
         
     def _find_device_index(self):
         """
@@ -68,29 +68,29 @@ class AudioService:
         target_name = os.getenv("MIC_DEVICE_NAME", "Default")
         
         # 如果配置是 Default 或空，使用系统默认
-        if not target_name or target_name.lower() == "default":
-            print("🎧 Using Default Microphone (System Default)")
+        if not target_name or target_name.lower() == 'default':
+            print("[INFO] Using Default Microphone (System Default)")
             return None
             
-        print(f"🔍 Searching for audio device containing: '{target_name}'...")
+        print(f"[SEARCH] Searching for audio device containing: '{target_name}'...")
         
         # 遍历设备列表进行模糊匹配
         try:
             mics = sr.Microphone.list_microphone_names()
             for i, name in enumerate(mics):
                 if target_name.lower() in name.lower():
-                    print(f"✅ Found Target Device: [Index {i}] {name}")
+                    print(f"[OK] Found Target Device: [Index {i}] {name}")
                     return i
         except Exception as e:
-            print(f"⚠️ Error listing microphones: {e}")
+            print(f"[WARN] Error listing microphones: {e}")
 
-        print(f"⚠️ Device '{target_name}' not found! Falling back to Default Mic.")
+        print(f"[WARN] Device '{target_name}' not found! Falling back to Default Mic.")
         return None
 
     def listen_and_transcribe(self):
         # 显示当前正在监听哪个设备，方便调试
         device_status = f"Index {self.target_device_index}" if self.target_device_index is not None else "Default Mic"
-        print(f"🎤 Listening on [{device_status}]... (Using Groq Turbo)")
+        print(f"[MIC] Listening on [{device_status}]... (Using Groq Turbo)")
         
         try:
             # 关键修改：传入 device_index
@@ -98,15 +98,15 @@ class AudioService:
                 self.recognizer.adjust_for_ambient_noise(source, duration=0.5)
                 # 录音参数
                 audio_data = self.recognizer.listen(source, timeout=5, phrase_time_limit=20)
-                print("⏳ Transcribing...")
+                print("[WAIT] Transcribing...")
 
             wav_bytes = audio_data.get_wav_data()
             audio_file = io.BytesIO(wav_bytes)
             audio_file.name = "audio.wav" 
 
-            # 🌐 使用云端 API (Render) 进行转录
+            # 使用云端 API (Render) 进行转录
             if not self.user_token:
-                print("❌ No user token set! Please call set_token() first")
+                print("[ERROR] No user token set! Please call set_token() first")
                 return None
             
             try:
@@ -123,7 +123,7 @@ class AudioService:
                 )
                 
                 if response.status_code != 200:
-                    print(f"❌ Cloud API Error: {response.status_code}")
+                    print(f"[ERROR] Cloud API Error: {response.status_code}")
                     print(f"   Response: {response.text}")
                     if _global_state is not None:
                         _global_state.cloud_api_error = {"status": response.status_code, "message": response.text}
@@ -133,10 +133,10 @@ class AudioService:
                 text = result.get("text", "").strip()
                 
             except requests.exceptions.RequestException as e:
-                print(f"❌ Request Error: {e}")
+                print(f"[ERROR] Request Error: {e}")
                 return None
             except Exception as e:
-                print(f"❌ Unexpected Error: {e}")
+                print(f"[ERROR] Unexpected Error: {e}")
                 return None
 
             # --- 增强的垃圾词过滤 ---
@@ -165,11 +165,11 @@ class AudioService:
                 print(f"👻 Filtered Hallucination (polite): '{text}'")
                 return None
 
-            print(f"🗣️ You said: {text}")
+            print(f"[VOICE] You said: {text}")
             return text
 
         except sr.WaitTimeoutError:
             return None
         except Exception as e:
-            print(f"❌ Audio Error: {e}")
+            print(f"[ERROR] Audio Error: {e}")
             return None

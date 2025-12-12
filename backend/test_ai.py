@@ -8,7 +8,7 @@ load_dotenv()
 # 2. 获取 Key
 api_key = os.getenv("OPENAI_API_KEY")
 if not api_key:
-    print("❌ 错误：未找到 API Key，请检查 .env 文件")
+    print("[ERROR] 错误：未找到 API Key，请检查 .env 文件")
     exit()
 
 # 3. 初始化 OpenAI 客户端
@@ -27,8 +27,8 @@ try:
     )
     
     # 5. 打印结果
-    print("✅ 连接成功！AI 回复：")
+    print("[OK] 连接成功！AI 回复：")
     print(response.choices[0].message.content)
 
 except Exception as e:
-    print(f"❌ 连接失败：{e}")
+    print(f"[ERROR] 连接失败：{e}")

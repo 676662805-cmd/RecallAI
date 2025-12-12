@@ -23,7 +23,7 @@ def main():
             # Step C: Output Result
             if matched_card:
                 print("\n" + "="*40)
-                print(f"✅ MATCH FOUND: {matched_card['topic']}")
+                print(f"[OK] MATCH FOUND: {matched_card['topic']}")
                 print(f"📝 Content: {matched_card['content'][:100]}...")
                 print("="*40 + "\n")
             else:

@@ -44,7 +44,7 @@ def get_writable_env_path():
             if os.path.exists(template_path):
                 import shutil
                 shutil.copy(template_path, writable_path)
-                print(f"📋 Copied .env template to: {writable_path}")
+                print(f"[INFO] Copied .env template to: {writable_path}")
         
         return writable_path
     else:
@@ -80,11 +80,11 @@ class GlobalState:
     # --- 历史记录栈 (回退用) ---
     card_history = []
     
-    # --- ✨ 新增：Transcript 记录 ---
+    # --- [NEW] 新增：Transcript 记录 ---
     transcript_log = []      # 存所有的对话记录 [{time, text}, ...]
     start_time = 0           # 面试开始的时间戳
     
-    # --- 🌐 云端化：用户 Token ---
+    # ---  云端化：用户 Token ---
     user_token = None        # 用户的认证 Token，用于调用云端 API
     
     # --- 🚨 云端 API 错误状态 ---
@@ -118,7 +118,7 @@ def save_transcript_to_file():
             json.dump(state.transcript_log, f, indent=2, ensure_ascii=False)
         print(f"💾 Transcript saved to: {filepath}")
     except Exception as e:
-        print(f"❌ Failed to save transcript: {e}")
+        print(f"[ERROR] Failed to save transcript: {e}")
 
 # 卡片更新封装函数 (带历史记录)
 def update_card(new_card):
@@ -148,17 +148,17 @@ def is_reading_card(speech_text, card_content):
     return ratio > 0.8
 
 def background_listener():
-    print("🧵 Background listener started")
+    print("[THREAD] Background listener started")
     BUFFER_TIMEOUT = 5.0 
     
-    # ✨ 记录开始时间
+    # [NEW] 记录开始时间
     state.start_time = time.time()
     
     while state.is_running:
         text = audio_service.listen_and_transcribe()
         
         if text:
-            # --- ✨ 记录 Transcript ---
+            # --- [NEW] 记录 Transcript ---
             # 只要识别到一段文本，就记录下来
             current_time = time.time()
             elapsed = current_time - state.start_time
@@ -199,7 +199,7 @@ def background_listener():
             card = match_service.find_best_match(current_full_text)
             
             if card:
-                print(f"✅ LOCAL MATCH: {card['topic']}")
+                print(f"[OK] LOCAL MATCH: {card['topic']}")
                 update_card(card) 
                 state.sentence_buffer = "" 
             else:
@@ -217,13 +217,13 @@ def background_listener():
                             print("🧹 Text rejected by AI & too long -> Clearing buffer")
                             state.sentence_buffer = ""
                         else:
-                            print("⏳ Text kept in buffer...")
+                            print("[WAIT] Text kept in buffer...")
                             state.sentence_buffer = current_full_text
                 else:
                     state.sentence_buffer = current_full_text
         
         time.sleep(0.1)
-    print("🛑 Stopped")
+    print("[STOP] Stopped")
 
 # --- API 接口区域 ---
 
@@ -244,18 +244,18 @@ def set_user_token(token_data: dict):
     # 同时设置到 audio_service 和 match_service
     audio_service.set_token(token)
     match_service.set_token(token)
-    print(f"✅ User token received and stored (length: {len(token)})")
+    print(f"[OK] User token received and stored (length: {len(token)})")
     return {"success": True, "msg": "Token stored successfully"}
 
 @app.post("/api/start")
 def start_interview():
-    print(f"📥 Received START request, current state: is_running={state.is_running}")
+    print(f"[DOWNLOAD] Received START request, current state: is_running={state.is_running}")
     
     if state.is_running: 
-        print("⚠️ Already running, ignoring start request")
+        print("[WARN] Already running, ignoring start request")
         return {"msg": "Already running", "is_running": True}
     
-    # ✨ 重置状态 - 确保清空所有旧数据
+    # [NEW] 重置状态 - 确保清空所有旧数据
     state.is_running = True
     state.transcript_log = []  # 清空 transcript 记录
     state.sentence_buffer = ""
@@ -264,31 +264,31 @@ def start_interview():
     state.card_history = []
     state.start_time = time.time()
     
-    print("🚀 Starting background listener thread...")
+    print("[START] Starting background listener thread...")
     t = threading.Thread(target=background_listener)
     t.daemon = True
     t.start()
-    print("✅ Background listener started!")
+    print("[OK] Background listener started!")
     return {"msg": "Started", "is_running": True}
 
 @app.post("/api/stop")
 def stop_interview():
-    print(f"📥 Received STOP request, current state: is_running={state.is_running}")
+    print(f"[DOWNLOAD] Received STOP request, current state: is_running={state.is_running}")
     
     state.is_running = False
     state.cloud_api_error = None  # 清除错误状态
     
-    # ✨ 停止时保存文件（只有当有记录时才保存）
+    # [NEW] 停止时保存文件（只有当有记录时才保存）
     if state.transcript_log:
         save_transcript_to_file()
         print(f"📝 Saved {len(state.transcript_log)} transcript entries")
     else:
-        print("⚠️ No transcript to save (empty)")
+        print("[WARN] No transcript to save (empty)")
     
-    # ✨ 保存后立即清空，防止重复保存
+    # [NEW] 保存后立即清空，防止重复保存
     state.transcript_log = []
     
-    print("✅ Stopped successfully")
+    print("[OK] Stopped successfully")
     return {"msg": "Stopped", "is_running": False}
 
 @app.get("/api/poll")
@@ -300,7 +300,7 @@ def get_latest_result():
         "is_running": state.is_running,
         "text": state.latest_text,
         "card": state.latest_card,
-        # ✨ 返回 transcript 给前端展示
+        # [NEW] 返回 transcript 给前端展示
         "transcript": state.transcript_log,
         # 🚨 返回云端 API 错误（如果有）
         "cloud_api_error": error
@@ -315,7 +315,7 @@ def rewind_card():
         state.latest_card = previous_card
         return {"success": True, "topic": previous_card['topic']}
     else:
-        print("⚠️ No history to rewind")
+        print("[WARN] No history to rewind")
         return {"success": False, "msg": "No history"}
 
 @app.get("/api/cards")
@@ -354,10 +354,10 @@ def save_cards(cards_data: dict):
         # 重新加载 matcher service 的 cards
         match_service.load_cards()
         
-        print(f"✅ Saved {len(backend_cards)} cards to backend")
+        print(f"[OK] Saved {len(backend_cards)} cards to backend")
         return {"success": True, "count": len(backend_cards)}
     except Exception as e:
-        print(f"❌ Error saving cards: {e}")
+        print(f"[ERROR] Error saving cards: {e}")
         return {"success": False, "error": str(e)}
 
 @app.get("/api/transcripts")
@@ -408,17 +408,17 @@ def get_transcripts():
                     print(f"Error reading {filename}: {e}")
                     continue
         
-        print(f"📋 Found {len(transcript_list)} transcripts")
+        print(f"[INFO] Found {len(transcript_list)} transcripts")
         return {"transcripts": transcript_list}
     except Exception as e:
-        print(f"❌ Error listing transcripts: {e}")
+        print(f"[ERROR] Error listing transcripts: {e}")
         return {"transcripts": []}
 
 @app.get("/api/mic-device")
 def get_mic_device():
     """获取当前麦克风设备设置"""
     env_path = get_writable_env_path()
-    print(f"📂 Reading .env from: {env_path}")
+    print(f"[FILE] Reading .env from: {env_path}")
     try:
         with open(env_path, 'r', encoding='utf-8') as f:
             for line in f:
@@ -427,7 +427,7 @@ def get_mic_device():
                     return {"device": device}
         return {"device": "default"}
     except Exception as e:
-        print(f"❌ Error reading .env: {e}")
+        print(f"[ERROR] Error reading .env: {e}")
         return {"device": "default"}
 
 @app.post("/api/mic-device")
@@ -455,13 +455,13 @@ def set_mic_device(data: dict):
         # 更新环境变量
         os.environ['MIC_DEVICE_NAME'] = device
         
-        # ✨ 重要：重新加载 audio_service 的设备配置
+        # [NEW] 重要：重新加载 audio_service 的设备配置
         audio_service.reload_device()
         
-        print(f"✅ Microphone device changed to: {device}")
+        print(f"[OK] Microphone device changed to: {device}")
         return {"success": True, "device": device}
     except Exception as e:
-        print(f"❌ Error updating .env: {e}")
+        print(f"[ERROR] Error updating .env: {e}")
         return {"success": False, "error": str(e)}
 
 # ============================================
@@ -469,9 +469,9 @@ def set_mic_device(data: dict):
 # ============================================
 if __name__ == "__main__":
     import uvicorn
-    print("🚀 Starting RecallAI Backend Server...")
-    print(f"📍 Server will run on: http://localhost:8000")
-    print(f"📍 Health check: http://localhost:8000/health")
+    print("[START] Starting RecallAI Backend Server...")
+    print(f"[SERVER] Server will run on: http://localhost:8000")
+    print(f"[SERVER] Health check: http://localhost:8000/health")
     
     uvicorn.run(
         app, 
