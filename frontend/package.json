@@ -86,7 +86,7 @@
           ]
         }
       ],
-      "icon": "build/icons/icon.icns",
+      "icon": "public/icon.icns",
       "identity": "DINGXI GU (2275962W82)",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
