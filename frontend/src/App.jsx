@@ -13,18 +13,69 @@ function MainApp() {
   const theme = useSystemTheme();
   const { logout, token } = useAuth();
   
-  // 🔥 发送 Token 到后端
+  // 🔥 发送 Token 到后端（带重试机制）
   useEffect(() => {
-    if (token) {
-      fetch('http://127.0.0.1:8000/api/set-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token })
-      })
-      .then(r => r.json())
-      .then(d => console.log('✅ Token sent to backend:', d))
-      .catch(e => console.error('❌ Failed to send token:', e))
-    }
+    if (!token) return;
+    
+    let retryCount = 0;
+    const maxRetries = 10; // 最多重试10次
+    let retryInterval = null;
+    
+    const sendToken = async () => {
+      try {
+        const response = await fetch('http://127.0.0.1:8000/api/set-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token }),
+          signal: AbortSignal.timeout(5000) // 5秒超时
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('✅ Token sent to backend:', data);
+          
+          // 成功后清除重试定时器
+          if (retryInterval) {
+            clearInterval(retryInterval);
+            retryInterval = null;
+          }
+          return true;
+        } else {
+          throw new Error(`Backend returned ${response.status}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to send token (attempt ${retryCount + 1}/${maxRetries}):`, error.message);
+        return false;
+      }
+    };
+    
+    // 首次尝试
+    sendToken().then(success => {
+      if (!success && retryCount < maxRetries) {
+        // 如果失败，启动重试定时器（每3秒重试一次）
+        retryInterval = setInterval(async () => {
+          retryCount++;
+          
+          if (retryCount >= maxRetries) {
+            console.error('❌ Failed to send token after', maxRetries, 'attempts');
+            clearInterval(retryInterval);
+            return;
+          }
+          
+          const success = await sendToken();
+          if (success && retryInterval) {
+            clearInterval(retryInterval);
+          }
+        }, 3000); // 每3秒重试一次
+      }
+    });
+    
+    // 清理函数
+    return () => {
+      if (retryInterval) {
+        clearInterval(retryInterval);
+      }
+    };
   }, [token])
   
   // Determine current page from URL
@@ -262,9 +313,55 @@ function MainApp() {
   }, [currentPage]);
 
   // Start backend listening
+  const ensureBackendTokenReady = async () => {
+    if (!token) {
+      setStatus('❌ Please login first');
+      return false;
+    }
+
+    try {
+      const statusResponse = await fetch('http://127.0.0.1:8000/api/token-status', {
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (statusResponse.ok) {
+        const tokenStatus = await statusResponse.json();
+        if (tokenStatus.has_token) return true;
+      }
+
+      const setTokenResponse = await fetch('http://127.0.0.1:8000/api/set-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (!setTokenResponse.ok) {
+        return false;
+      }
+
+      const verifyResponse = await fetch('http://127.0.0.1:8000/api/token-status', {
+        signal: AbortSignal.timeout(5000)
+      });
+
+      if (!verifyResponse.ok) return false;
+      const verifyStatus = await verifyResponse.json();
+      return !!verifyStatus.has_token;
+    } catch (error) {
+      console.warn('⚠️ Failed to ensure backend token readiness:', error.message);
+      return false;
+    }
+  };
+
   const startInterview = async () => {
     console.log('🚀 Attempting to start interview...');
     try {
+      const tokenReady = await ensureBackendTokenReady();
+      if (!tokenReady) {
+        setStatus('❌ Token sync failed. Please login again and retry');
+        return;
+      }
+
       const res = await fetch('http://127.0.0.1:8000/api/start', { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -284,7 +381,7 @@ function MainApp() {
         if (res.status === 403 || (data.error && data.error.includes('premium'))) {
           setStatus('❌ Access Denied: Premium subscription required');
         } else if (res.status === 401) {
-          setStatus('❌ Access Denied: Please login with valid credentials');
+          setStatus('❌ Token not ready. Please login again and retry');
         } else {
           setStatus('Startup request failed');
         }

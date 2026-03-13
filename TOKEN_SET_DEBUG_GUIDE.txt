@@ -1,0 +1,94 @@
+RecallAI Token Set 最新逻辑与 Debug 指南
+
+更新时间: 2026-03-12
+适用范围: 本地开发 + Electron 打包测试
+
+==================================================
+1) 最新 Token Set 逻辑（最小化改造后）
+==================================================
+
+后端（backend/main.py）:
+- 新增接口: GET /api/token-status
+  - 返回: has_token, token_length, is_running
+- POST /api/start 增加强校验:
+  - 若 state.user_token 为空，直接返回 401
+  - 不再在无 token 情况下启动后台监听线程
+- POST /api/set-token:
+  - 接收 token 并写入 state.user_token
+  - 同步设置到 audio_service.set_token(token)
+  - 同步设置到 match_service.set_token(token)
+
+前端（frontend/src/App.jsx）:
+- 新增 ensureBackendTokenReady()
+  1. 先 GET /api/token-status
+  2. 若 has_token=false，则调用 POST /api/set-token
+  3. 再次 GET /api/token-status 做确认
+- startInterview() 在调用 /api/start 前，必须先 tokenReady=true
+  - 若失败，提示 "Token sync failed" 并中止启动
+
+==================================================
+2) 为什么之前会“没收到 token”
+==================================================
+
+根因是打包资源引用错位:
+- Electron 打包配置引用的是 ../backend/dist/main
+- 但某次重打只更新了 backend_executable
+- 导致 App 里实际运行的是旧 main，缺少新 token 逻辑
+
+结论:
+- 只要改了 backend/main.py，必须重打会被 Electron 引用的同名二进制（当前是 dist/main）
+
+==================================================
+3) 正确重打顺序（当前项目）
+==================================================
+
+1. 停旧进程:
+- lsof -i tcp:8000 -sTCP:LISTEN -t | xargs -r kill -9
+- lsof -i tcp:5173 -sTCP:LISTEN -t | xargs -r kill -9
+
+2. 重打后端（关键: main.spec）:
+- cd /Users/bete/RecallAI/backend
+- .venv/bin/pyinstaller --clean --noconfirm main.spec
+
+3. 重打前端与 Electron:
+- cd /Users/bete/RecallAI/frontend
+- npm run build
+- npm run pack
+
+==================================================
+4) 现场 Debug 快速命令
+==================================================
+
+A. 看 8000 端口是谁在监听:
+- lsof -i tcp:8000 -sTCP:LISTEN -n -P
+
+B. 健康检查:
+- curl -sS http://127.0.0.1:8000/health
+
+C. 检查是否是“新后端”:
+- curl -sS http://127.0.0.1:8000/api/token-status
+- 若返回 404，说明仍是旧版本后端
+
+D. 手动注入 token（联调用）:
+- curl -sS -X POST http://127.0.0.1:8000/api/set-token \
+  -H 'Content-Type: application/json' \
+  -d '{"token":"YOUR_TOKEN"}'
+
+E. 检查 start 门控:
+- 无 token:
+  curl -sS -X POST http://127.0.0.1:8000/api/start -H 'Content-Type: application/json' -d '{}'
+  预期: 401 / Token not set
+- 有 token:
+  预期: {"msg":"Started","is_running":true}
+
+F. 查日志关键词:
+- grep -nE "No user token set|Token not set|/api/set-token|/api/start|ERROR|Traceback" /tmp/recallai-backend.log | tail -n 100
+
+==================================================
+5) 商业化建议（保持 Render 发 token）
+==================================================
+
+- 保持 Render/Supabase 登录后下发 token
+- 前端必须先完成 token handshake（set-token + verify）再允许 Start
+- 后端 Start 保持强门控（无 token 不启动）
+- 这样可避免开箱用户遇到“能点 Start 但后台没权限”的隐性故障

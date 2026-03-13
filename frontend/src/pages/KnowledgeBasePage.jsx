@@ -8,6 +8,19 @@ import RenameCategoryModal from '../components/RenameCategoryModal';
 const initialCategories = [];
 
 const initialMockCards = [];
+const DEFAULT_CATEGORY_ID = 'default';
+const DEFAULT_CATEGORY_NAME = 'Default';
+
+const normalizeCategoryId = (value) => {
+    if (!value || value === '_favorites') return DEFAULT_CATEGORY_ID;
+    return value;
+};
+
+const normalizeCard = (card) => ({
+    ...card,
+    category: normalizeCategoryId(card.category),
+    isFavorite: card.isFavorite === true
+});
 
 // External component 1: Sidebar
 const Sidebar = ({ theme, categories, activeCategory, setActiveCategory, setIsNewCategoryModalOpen, handleReturnClick, onDeleteCategory, onOpenRenameModal }) => {
@@ -504,16 +517,31 @@ const TableView = ({ theme, filteredCards, categories, activeCategory, handleEdi
 // Main component
 function KnowledgeBasePage({ handleReturnToInterview }) {
     const theme = useSystemTheme();
+    const [isInitialized, setIsInitialized] = useState(false);
     
     // 🔥 Read data from localStorage, use initial values if not available
     const [categories, setCategories] = useState(() => {
         const saved = localStorage.getItem('knowledgebase_categories');
-        return saved ? JSON.parse(saved) : initialCategories;
+        if (!saved) return initialCategories;
+        try {
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed)) return initialCategories;
+            return parsed.filter(cat => cat && cat.id && cat.id !== '_favorites');
+        } catch {
+            return initialCategories;
+        }
     });
     
     const [cards, setCards] = useState(() => {
         const saved = localStorage.getItem('knowledgebase_cards');
-        return saved ? JSON.parse(saved) : initialMockCards;
+        if (!saved) return initialMockCards;
+        try {
+            const parsed = JSON.parse(saved);
+            if (!Array.isArray(parsed)) return initialMockCards;
+            return parsed.map(normalizeCard);
+        } catch {
+            return initialMockCards;
+        }
     });
     
     const [activeCategory, setActiveCategory] = useState(() => {
@@ -528,32 +556,59 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     const [renamingCategory, setRenamingCategory] = useState(null);
     const [creationKey, setCreationKey] = useState(0);
     
-    // 🔥 Load cards from backend only on first use (if localStorage doesn't exist at all)
+    // 🔥 初始化加载：本地无卡片或为空时，从后端拉取测试卡片
     useEffect(() => {
         const loadFromBackend = async () => {
             const localCards = localStorage.getItem('knowledgebase_cards');
-            // 只在 localStorage 完全不存在时才加载，而不是为空时
-            if (localCards === null) {
+            let shouldLoadFromBackend = localCards === null;
+
+            if (!shouldLoadFromBackend && localCards) {
                 try {
-                    const response = await fetch('http://127.0.0.1:8000/api/cards');
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.cards && data.cards.length > 0) {
-                            // 转换后端格式到前端格式
-                            const frontendCards = data.cards.map(card => ({
-                                id: card.id,
-                                topic: card.topic,
-                                components: card.content.split('\n'),
-                                category: 'interview',
-                                isFavorite: false
-                            }));
-                            setCards(frontendCards);
-                            console.log('✅ Loaded cards from backend');
-                        }
-                    }
-                } catch (err) {
-                    console.log('⚠️ Could not load cards from backend:', err);
+                    const parsedLocalCards = JSON.parse(localCards);
+                    shouldLoadFromBackend = Array.isArray(parsedLocalCards) && parsedLocalCards.length === 0;
+                } catch {
+                    shouldLoadFromBackend = true;
                 }
+            }
+
+            if (!shouldLoadFromBackend) {
+                setIsInitialized(true);
+                return;
+            }
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/api/cards');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.cards && data.cards.length > 0) {
+                        // 转换后端格式到前端格式
+                        const frontendCards = data.cards.map(card => ({
+                            id: card.id,
+                            topic: card.topic,
+                            components: card.content.split('\n'),
+                            category: DEFAULT_CATEGORY_ID,
+                            isFavorite: false
+                        })).map(normalizeCard);
+
+                        setCards(frontendCards);
+
+                        const savedCategories = localStorage.getItem('knowledgebase_categories');
+                        if (!savedCategories || savedCategories === '[]') {
+                            setCategories([{ id: DEFAULT_CATEGORY_ID, name: DEFAULT_CATEGORY_NAME }]);
+                        }
+
+                        const savedActiveCategory = localStorage.getItem('knowledgebase_activeCategory');
+                        if (!savedActiveCategory) {
+                            setActiveCategory(DEFAULT_CATEGORY_ID);
+                        }
+
+                        console.log(`✅ Loaded ${frontendCards.length} cards from backend`);
+                    }
+                }
+            } catch (err) {
+                console.log('⚠️ Could not load cards from backend:', err);
+            } finally {
+                setIsInitialized(true);
             }
         };
         loadFromBackend();
@@ -566,6 +621,8 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
     
     // 🔥 Listen to cards changes, auto save to localStorage and sync to backend
     useEffect(() => {
+        if (!isInitialized) return;
+
         localStorage.setItem('knowledgebase_cards', JSON.stringify(cards));
         
         // 同步到后端（包括空数组，这样删除操作也会同步）
@@ -584,7 +641,7 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
         
         // 总是同步，即使是空数组
         syncToBackend();
-    }, [cards]);
+    }, [cards, isInitialized]);
     
     // 🔥 Listen to activeCategory changes, auto save to localStorage
     useEffect(() => {
@@ -593,11 +650,40 @@ function KnowledgeBasePage({ handleReturnToInterview }) {
         }
     }, [activeCategory]);
 
+    // 兜底：如果已有卡片，保证分类和当前选中分类有效
+    useEffect(() => {
+        if (cards.length === 0) return;
+
+        const uniqueCategoryIds = [...new Set(cards.map(card => card.category).filter(Boolean))];
+        const fallbackIds = uniqueCategoryIds.length > 0 ? uniqueCategoryIds : [DEFAULT_CATEGORY_ID];
+        const derivedCategories = fallbackIds.map(id => ({
+            id,
+            name: id === DEFAULT_CATEGORY_ID ? DEFAULT_CATEGORY_NAME : id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        }));
+
+        if (categories.length === 0) {
+            setCategories(derivedCategories);
+        } else {
+            const existingIds = new Set(categories.map(cat => cat.id));
+            const missingCategories = derivedCategories.filter(cat => !existingIds.has(cat.id));
+            if (missingCategories.length > 0) {
+                setCategories(prev => [...prev, ...missingCategories]);
+            }
+        }
+
+        const validCategoryIds = new Set((categories.length > 0 ? categories : derivedCategories).map(cat => cat.id));
+        const activeInvalid = !activeCategory || (activeCategory !== '_favorites' && !validCategoryIds.has(activeCategory));
+
+        if (activeInvalid) {
+            setActiveCategory(derivedCategories[0].id);
+        }
+    }, [cards, categories, activeCategory]);
+
     const filteredCards = activeCategory === '_favorites'
         ? cards.filter(card => card.isFavorite === true)
         : activeCategory
         ? cards.filter(card => card.category === activeCategory)
-        : [];
+        : cards;
 
     const handleSaveCard = (newCard) => {
         if (editingCard) {

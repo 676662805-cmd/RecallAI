@@ -5,7 +5,7 @@ import os
 import sys
 from datetime import datetime
 from difflib import SequenceMatcher
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from services.audio import AudioService, set_audio_global_state
 from services.matcher import MatchService, set_global_state
@@ -238,7 +238,7 @@ def set_user_token(token_data: dict):
     """接收并存储前端传来的用户 Token"""
     token = token_data.get("token")
     if not token:
-        return {"success": False, "error": "Token is required"}
+        raise HTTPException(status_code=400, detail="Token is required")
     
     state.user_token = token
     # 同时设置到 audio_service 和 match_service
@@ -247,9 +247,23 @@ def set_user_token(token_data: dict):
     print(f"✅ User token received and stored (length: {len(token)})")
     return {"success": True, "msg": "Token stored successfully"}
 
+@app.get("/api/token-status")
+def get_token_status():
+    """返回后端当前是否已收到可用 token"""
+    has_token = bool(state.user_token and str(state.user_token).strip())
+    return {
+        "has_token": has_token,
+        "token_length": len(state.user_token) if has_token else 0,
+        "is_running": state.is_running
+    }
+
 @app.post("/api/start")
 def start_interview():
     print(f"📥 Received START request, current state: is_running={state.is_running}")
+
+    if not state.user_token:
+        print("❌ START rejected: No user token available")
+        raise HTTPException(status_code=401, detail="Token not set. Please call /api/set-token first")
     
     if state.is_running: 
         print("⚠️ Already running, ignoring start request")
